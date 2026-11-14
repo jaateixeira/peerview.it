@@ -310,6 +310,26 @@ def test_the_due_date_is_optional_and_checked():
     assert r.status_code == 400 and "due date" in r.text.lower()
 
 
+def test_reviews_are_due_at_four_in_the_afternoon_unless_another_time_is_chosen():
+    _, client = organizer()
+    client.cookies.set("pv_tz", "Europe/Helsinki")
+    page = client.get(NEW).text
+    assert 'name="due_time" value="16:00"' in page and "data-min-today" in page
+    assert "Join a paid plan to choose when Previewit" in page
+    for data, due in (
+        ({"due": "2027-06-01"}, "2027-06-01 16:00 EEST"),
+        ({"due": "2027-06-01", "due_time": "09:15"}, "2027-06-01 09:15 EEST"),
+    ):
+        r = send(client, {"emails": "ana@x.fi", **data})
+        assert r.status_code == 200
+        found = re.search(r'href="(/calls/\w+)', r.text)
+        assert found, r.text
+        call = found.group(1)
+        assert f"Reviews due {due}" in client.get(f"{call}/rounds").text
+    r = send(client, {"emails": "ana@x.fi", "due": "2027-06-01", "due_time": "noonish"})
+    assert r.status_code == 400 and "time like 16:00" in r.text
+
+
 def test_an_unverified_organizer_can_still_make_links_but_not_send():
     h, client = organizer(verified=False)
     r = send(client, {"emails": "ana@x.fi", "send_emails": "on"})

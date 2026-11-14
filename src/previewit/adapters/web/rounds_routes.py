@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, tzinfo
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -14,6 +14,12 @@ from starlette.datastructures import FormData
 from starlette.responses import Response
 
 from previewit.adapters.web.kit import WebKit
+from previewit.adapters.web.local_time import (
+    BadTime,
+    parse_day_time,
+    parse_local,
+    viewer_zone,
+)
 from previewit.adapters.web.tenancy_routes import current_user
 from previewit.application.allocation import UnknownStrategy
 from previewit.application.calls import CallsService, ShareLimitReached
@@ -28,15 +34,26 @@ from previewit.domain.rounds import DEFAULT_ANONYMITY, InvalidRound, RoundId, Ta
 from previewit.domain.tenancy import SpaceId
 
 
-def parse_when(value: str) -> datetime | None:
-    """`datetime-local` input, read as UTC."""
-    value = value.strip()
-    if not value:
-        return None
+def parse_when(value: str, zone: tzinfo = UTC) -> datetime | None:
+    """`datetime-local` input in the viewer's zone, as UTC."""
     try:
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M").replace(tzinfo=UTC)
-    except ValueError:
-        raise InvalidRound("Use a date and time like 2026-12-31 23:59.") from None
+        return parse_local(value, zone)
+    except BadTime as e:
+        raise InvalidRound(str(e)) from None
+
+
+def parse_due(day: str, at: str, zone: tzinfo = UTC) -> datetime | None:
+    """The reviews-due day and time (16:00 if no time) in the viewer's zone, as UTC."""
+    try:
+        return parse_day_time(day, at, zone)
+    except BadTime as e:
+        raise InvalidRound(str(e)) from None
+
+
+def refuse_past_due(closes_at: datetime | None, before: datetime | None = None) -> None:
+    """A due time typed in the form must still be ahead; an unchanged saved one may not be."""
+    if closes_at is not None and closes_at != before and closes_at <= datetime.now(UTC):
+        raise InvalidRound("That due time has passed. Choose today or a later day.")
 
 
 def whole(value: str, default: int) -> int:
@@ -147,19 +164,23 @@ def build_rounds_router(
             return await run(page, request, user, call_id, notice=notice)
         return RedirectResponse(f"/calls/{call_id}/rounds", status_code=303)
 
-    def settings(f: FormData) -> dict[str, Any]:
+    def settings(f: FormData, zone: tzinfo) -> dict[str, Any]:
         return {
             "per_submission": whole(kit.text(f, "per_submission"), 1),
             "strategy_key": kit.text(f, "strategy"),
             "anonymity_key": kit.text(f, "anonymity") or DEFAULT_ANONYMITY,
-            "opens_at": parse_when(kit.text(f, "opens_at")),
-            "closes_at": parse_when(kit.text(f, "closes_at")),
+            "opens_at": parse_when(kit.text(f, "opens_at"), zone),
+            "closes_at": parse_due(kit.text(f, "closes_on"), kit.text(f, "closes_time"), zone),
         }
 
     @router.post("/calls/{call_id}/rounds")
     async def create_round(request: Request, call_id: str) -> Response:
+        zone = viewer_zone(request)
+
         def action(user: User, f: FormData) -> None:
-            rounds.create_round(user.id, CallId(call_id), **settings(f))
+            values = settings(f, zone)
+            refuse_past_due(values["closes_at"])
+            rounds.create_round(user.id, CallId(call_id), **values)
 
         return await act(request, call_id, action)
 
@@ -168,8 +189,13 @@ def build_rounds_router(
         user = current_user(request)
         call_id = await run(call_of_sync, user, round_id)
 
+        zone = viewer_zone(request)
+
         def action(u: User, f: FormData) -> None:
-            rounds.update_round(u.id, RoundId(round_id), **settings(f))
+            values = settings(f, zone)
+            saved = rounds.round_view(u.id, RoundId(round_id)).round.closes_at
+            refuse_past_due(values["closes_at"], saved)
+            rounds.update_round(u.id, RoundId(round_id), **values)
 
         return await act(request, call_id, action)
 

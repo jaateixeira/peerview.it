@@ -15,6 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from previewit.adapters.auth.base import ExternalProvider
 from previewit.adapters.settings import Settings
+from previewit.adapters.web import local_time
 from previewit.adapters.web.auth_routes import build_auth_router
 from previewit.adapters.web.calls_routes import build_calls_router
 from previewit.adapters.web.docs_routes import build_docs_router
@@ -69,6 +70,7 @@ def build_app(
     app = FastAPI(title="Previewit", docs_url=None, redoc_url=None)
     templates = Jinja2Templates(directory=HERE / "templates")
     templates.env.globals["source_url"] = SOURCE_URL
+    local_time.install(templates.env)
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
     codec = SessionCodec(settings.secret_key)
 

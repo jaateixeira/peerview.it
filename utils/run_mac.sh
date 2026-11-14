@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 # Run Previewit locally on macOS for manual testing (runtime dependencies only).
 #
-# Usage:  utils/run_mac.sh                  # http://127.0.0.1:8000
+# Usage:  utils/run_mac.sh                  # http://localhost:8000
 #         PORT=8010 utils/run_mac.sh
 #         NO_OPEN=1 utils/run_mac.sh        # do not open the browser
-#         PREVIEWIT_BASE_URL=http://localhost:8000 utils/run_mac.sh   # override the base URL
+#         PREVIEWIT_BASE_URL=https://example.org utils/run_mac.sh   # override the base URL
 #
 # The base URL is set from HOST and PORT so that form posts pass the Origin check
 # (a browser on http://127.0.0.1:8000 must not post to a server that thinks it is
-# http://localhost:8000). Set PREVIEWIT_BASE_URL yourself to override it.
+# http://localhost:8000). Open the address the script prints, not 127.0.0.1.
+# Set PREVIEWIT_BASE_URL yourself to override it.
 #
 # Needs: Homebrew (https://brew.sh). Installs uv and git if missing.
 set -euo pipefail
 
-HOST="${HOST:-127.0.0.1}"
+HOST="${HOST:-localhost}"
 PORT="${PORT:-8000}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 URL="http://${HOST}:${PORT}"

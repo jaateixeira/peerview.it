@@ -76,7 +76,7 @@
       <section class="card">
         <h2>Who saved</h2>
         <ol class="list">
-          {% for e in ws.trail %}<li><small>Version {{ e.version }}: {{ e.user_label }}, {{ e.at.strftime('%Y-%m-%d %H:%M') }} UTC</small></li>{% endfor %}
+          {% for e in ws.trail %}<li><small>Version {{ e.version }}: {{ e.user_label }}, {{ e.at|when }}</small></li>{% endfor %}
         </ol>
       </section>
       {% endif %}

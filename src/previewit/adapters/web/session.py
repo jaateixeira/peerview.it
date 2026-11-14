@@ -60,13 +60,22 @@ def set_csrf_cookie(response: Response, token: str, *, secure: bool) -> None:
     response.set_cookie(CSRF_COOKIE, token, httponly=True, samesite="lax", secure=secure, path="/")
 
 
+def csrf_problem(request: Request, submitted: str | None, origin: str) -> str | None:
+    """Why a form fails the double-submit and Origin checks, or None when it passes."""
+    cookie = request.cookies.get(CSRF_COOKIE)
+    if not cookie:
+        return "no form-token cookie (cookies blocked, or an https base URL served over http)"
+    if not submitted or not hmac.compare_digest(cookie, submitted):
+        return "the form token does not match the cookie (page opened before the cookie changed)"
+    sent_origin = request.headers.get("origin")
+    if sent_origin is not None and sent_origin != origin:
+        return f"page opened at {sent_origin}, but the base URL is {origin}"
+    return None
+
+
 def csrf_ok(request: Request, submitted: str | None, origin: str) -> bool:
     """Double-submit check plus an Origin check when the browser sends one."""
-    cookie = request.cookies.get(CSRF_COOKIE)
-    if not cookie or not submitted or not hmac.compare_digest(cookie, submitted):
-        return False
-    sent_origin = request.headers.get("origin")
-    return sent_origin is None or sent_origin == origin
+    return csrf_problem(request, submitted, origin) is None
 
 
 def safe_next(value: str | None) -> str:

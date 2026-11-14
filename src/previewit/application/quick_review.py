@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, time, timedelta, tzinfo
 
 from previewit.application.artifacts import ArtifactError, ArtifactRegistry, Upload
 from previewit.application.calls import CallsService, ShareLimitReached
@@ -26,6 +26,7 @@ from previewit.domain.tenancy import MAX_NAME_LENGTH, OrgRole, Role, SpaceId
 
 DEFAULT_DAYS = 14
 MAX_DAYS = 365
+DUE_TIME = time(16, 0)  # reviews are due at 16:00 unless the organizer says otherwise
 GENERAL_PRESET = "general"
 
 
@@ -40,7 +41,15 @@ class ReviewRequest:
     reviewers: Sequence[Email]
     cover_letter: str = ""
     send_emails: bool = True
-    due: datetime | None = None  # when the reviews are due; two weeks from now if empty
+    due: datetime | None = None  # when the reviews are due; two weeks from today if empty
+    due_time: time = DUE_TIME  # the time of day for the default due date
+    zone: tzinfo = UTC  # the organizer's time zone, for the default due date
+
+
+def default_due(now: datetime, zone: tzinfo, at: time = DUE_TIME) -> datetime:
+    """Two weeks from today in the organizer's zone, at `at` (16:00), as UTC."""
+    day = now.astimezone(zone).date() + timedelta(days=DEFAULT_DAYS)
+    return datetime.combine(day, at, zone).astimezone(UTC)
 
 
 @dataclass(frozen=True)
@@ -92,8 +101,10 @@ class QuickReviewService:
         if not request.reviewers:
             raise InvalidReviewRequest("Add at least one reviewer's email address.")
         now = self._now()
-        due = request.due or now + timedelta(days=DEFAULT_DAYS)
-        if not now < due <= now + timedelta(days=MAX_DAYS):
+        due = request.due or default_due(now, request.zone, request.due_time)
+        if due <= now:
+            raise InvalidReviewRequest("That due date has passed. Choose today or a later day.")
+        if due > now + timedelta(days=MAX_DAYS):
             raise InvalidReviewRequest("Choose a due date within the next year.")
         upload, kind = self._recognise(request.upload)
         self._artifacts.get(kind).ingest(upload)  # ArtifactError now, not after the space exists

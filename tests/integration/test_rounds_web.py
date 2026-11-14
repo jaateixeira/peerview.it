@@ -62,7 +62,13 @@ def test_bad_settings_show_an_error_and_create_nothing():
         ({"per_submission": "many"}, "whole number"),
         ({"strategy": "astrology"}, "Choose an allocation method"),
         ({"opens_at": "tomorrow"}, "date and time"),
-        ({"opens_at": "2030-01-02T10:00", "closes_at": "2030-01-01T10:00"}, "close after"),
+        (
+            {"opens_at": "2030-01-02T10:00", "closes_on": "2030-01-01", "closes_time": "10:00"},
+            "close after",
+        ),
+        ({"closes_on": "2020-01-01"}, "has passed"),
+        ({"closes_on": "someday"}, "date like"),
+        ({"closes_on": "2030-01-01", "closes_time": "teatime"}, "time like"),
     ):
         r = new_round(c, call, **data)
         assert r.status_code == 400 and expected in r.text, data
@@ -150,3 +156,39 @@ def test_outsiders_get_404_for_rounds_and_reviews():
     assert stranger.get(page_of(c, call)).status_code == 404
     assert stranger.get(f"{c.space}/reviews").status_code == 404
     assert post(stranger, f"/rounds/{rid}/allocate", {}, page="/spaces").status_code == 404
+
+
+def test_reviews_are_due_at_four_in_the_afternoon_in_the_organizers_time_zone():
+    c, call, _ = course_with_work(2)
+    c.teacher.cookies.set("pv_tz", "Europe/Helsinki")
+    form = c.teacher.get(page_of(c, call)).text
+    assert 'name="closes_time" value="16:00"' in form and "Europe/Helsinki" in form
+    assert re.search(r'name="closes_on" data-min-today min="\d{4}-\d{2}-\d{2}"', form)
+    assert new_round(c, call, closes_on="2099-06-01").status_code == 303
+    page = c.teacher.get(page_of(c, call)).text
+    assert "Reviews due 2099-06-01 16:00 EEST" in page  # summer time in Helsinki
+    c.teacher.cookies.delete("pv_tz")  # no zone: the same moment, shown in UTC
+    assert "Reviews due 2099-06-01 13:00 UTC" in c.teacher.get(page_of(c, call)).text
+
+
+def test_the_time_can_be_changed_and_utc_is_used_without_a_zone():
+    c, call, _ = course_with_work(2)
+    assert new_round(c, call, closes_on="2099-06-01", closes_time="09:30").status_code == 303
+    assert "Reviews due 2099-06-01 09:30 UTC" in c.teacher.get(page_of(c, call)).text
+
+
+def test_an_unchanged_past_due_time_does_not_block_editing_the_round():
+    c, call, _ = course_with_work(2)
+    assert new_round(c, call, closes_on="2099-06-01").status_code == 303
+    rid = round_id(c, call)
+    edit = {
+        "per_submission": "1",
+        "strategy": "round_robin",
+        "anonymity": "reviewers_hidden",
+        "closes_on": "2099-06-01",
+        "closes_time": "16:00",
+    }
+    r = post(
+        c.teacher, f"/rounds/{rid}/edit", {**edit, "per_submission": "2"}, page=page_of(c, call)
+    )
+    assert r.status_code == 303

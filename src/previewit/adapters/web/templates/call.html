@@ -8,7 +8,7 @@
     <span class="pill">{{ view.artifact_type.label }}</span>
     {% if call.group_work %}<span class="pill">groups</span>{% endif %}
     {% if not call.published %}<span class="pill">draft</span>{% endif %}
-    {% if call.closes_at %}<small>Closes {{ call.closes_at.strftime('%Y-%m-%d %H:%M') }} UTC</small>{% endif %}
+    {% if call.closes_at %}<small>Closes {{ call.closes_at|when }}</small>{% endif %}
   </p>
   {% if view.guest %}<p class="notice" role="status">You are viewing this through a share link.</p>{% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
@@ -59,7 +59,7 @@
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
     <label class="field">Title <input type="text" name="title" value="{{ call.title }}" maxlength="200" required></label>
     <label class="field">Description <textarea name="description" rows="4" maxlength="5000">{{ call.description }}</textarea></label>
-    <label class="field">Closes (UTC, optional) <input type="datetime-local" name="closes_at" value="{{ closes_value }}"></label>
+    <label class="field">Closes <small>(optional, {{ your_zone() }} time)</small> <input type="datetime-local" name="closes_at" value="{{ call.closes_at|local_input }}"></label>
     <label class="field"><span><input type="checkbox" name="published" {% if call.published %}checked{% endif %}> Visible to participants</span></label>
     <fieldset class="field">
       <legend>Who may submit</legend>

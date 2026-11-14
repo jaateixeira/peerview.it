@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from starlette.datastructures import FormData
 from starlette.requests import Request
 from starlette.responses import Response
 
 from previewit.adapters.settings import Settings
 from previewit.adapters.web.session import (
-    csrf_ok,
+    csrf_problem,
     csrf_token_for,
     set_csrf_cookie,
 )
@@ -35,15 +36,21 @@ class WebKit:
     async def checked_form(self, request: Request) -> FormData | None:
         form = await request.form()
         submitted = form.get("csrf")
-        if csrf_ok(
+        problem = csrf_problem(
             request, submitted if isinstance(submitted, str) else None, self.settings.origin
-        ):
+        )
+        if problem is None:
             return form
+        logger.warning("Form refused on {}: {}", request.url.path, problem)
         return None
 
-    @staticmethod
-    def forbidden() -> Response:
-        return HTMLResponse("Invalid or missing form token. Reload the page and try again.", 403)
+    def forbidden(self) -> Response:
+        return HTMLResponse(
+            "Invalid or missing form token. Reload the page and try again. If it happens "
+            f"again, open Previewit at {self.settings.origin}: a page opened at another "
+            "address (such as 127.0.0.1 instead of localhost) cannot send forms.",
+            403,
+        )
 
     @staticmethod
     def text(form: FormData, key: str) -> str:

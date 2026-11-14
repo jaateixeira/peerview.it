@@ -2,7 +2,7 @@
 {% block content %}
 <section class="card auth-card">
   <h1>{{ preview.title }}</h1>
-  <p><small>{{ preview.space_name }}, {{ preview.organization_name }}{% if preview.closes_at %}. Closes {{ preview.closes_at.strftime('%Y-%m-%d %H:%M') }} UTC{% endif %}</small></p>
+  <p><small>{{ preview.space_name }}, {{ preview.organization_name }}{% if preview.closes_at %}. Closes {{ preview.closes_at|when }}{% endif %}</small></p>
   {% if preview.description %}<p class="prose">{{ preview.description }}</p>{% endif %}
   {% if not preview.accepting %}
   <p class="notice" role="status">This call has closed. It no longer accepts work.</p>

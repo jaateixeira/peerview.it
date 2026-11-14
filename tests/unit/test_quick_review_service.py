@@ -1,6 +1,7 @@
 """Request a review in one step (ADR 0018): space, file and invitations, then send."""
 
-from datetime import timedelta
+from datetime import UTC, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -115,7 +116,13 @@ def test_a_request_needs_a_title_and_at_least_one_reviewer(w: QuickWorld):
 def test_the_due_date_defaults_to_two_weeks_and_must_be_in_the_future(w: QuickWorld):
     done = w.q.request_review(QUINN, w.request(send_emails=False))
     [view] = w.rr.rounds(QUINN, done.call_id)
-    assert view.round.closes_at == w.clock.now + timedelta(days=14)
+    two_weeks = (w.clock.now + timedelta(days=14)).date()
+    assert view.round.closes_at == datetime.combine(two_weeks, time(16, 0), UTC)
+    helsinki = ZoneInfo("Europe/Helsinki")
+    done = w.q.request_review(QUINN, w.request(send_emails=False, zone=helsinki))
+    [view] = w.rr.rounds(QUINN, done.call_id)
+    closes = view.round.closes_at
+    assert closes is not None and closes.astimezone(helsinki).time() == time(16, 0)
     with pytest.raises(InvalidReviewRequest):
         w.q.request_review(QUINN, w.request(send_emails=False, due=w.clock.now - timedelta(days=1)))
 

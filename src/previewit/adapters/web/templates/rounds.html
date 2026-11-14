@@ -11,7 +11,7 @@
   <article class="card stack" id="round-{{ r.number }}">
     <h2>Round {{ r.number }} <span class="pill">{{ v.status.value }}</span></h2>
     <p>{{ v.strategy_label }} allocation, {{ r.per_submission }} review{{ '' if r.per_submission == 1 else 's' }} per submission. {{ v.anonymity_label }}.
-      {% if r.opens_at %}Opens {{ r.opens_at.strftime('%Y-%m-%d %H:%M') }} UTC. {% endif %}{% if r.closes_at %}Closes {{ r.closes_at.strftime('%Y-%m-%d %H:%M') }} UTC.{% endif %}</p>
+      {% if r.opens_at %}Opens {{ r.opens_at|when }}. {% endif %}{% if r.closes_at %}Reviews due {{ r.closes_at|when }}.{% endif %}</p>
 
     {% if v.automatic %}
     <form method="post" action="/rounds/{{ r.id }}/allocate" hx-boost="false" class="inline">

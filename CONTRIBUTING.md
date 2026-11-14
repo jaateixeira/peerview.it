@@ -6,7 +6,7 @@ Thanks for helping! Previewit is licensed under **AGPL-3.0-or-later**; by contri
 ```bash
 make install   # uv sync + Playwright browser
 make check     # lint, types, layering, all tests (must pass before a PR)
-make run       # http://127.0.0.1:8000
+make run       # http://localhost:8000
 make hooks     # optional: pre-commit hooks (ruff, layering)
 ```
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/). Read `docs/PLAN.md` and `CLAUDE.md` for the architecture rules.

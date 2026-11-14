@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, tzinfo
 from pathlib import PurePath
 
 from fastapi import APIRouter, Request
@@ -14,9 +14,11 @@ from starlette.responses import Response
 
 from previewit.adapters.web.calls_routes import MAX_BODY_BYTES
 from previewit.adapters.web.kit import WebKit
+from previewit.adapters.web.local_time import BadTime, parse_day_time, viewer_zone
 from previewit.adapters.web.tenancy_routes import current_user
 from previewit.application.artifacts import ArtifactError, Upload
 from previewit.application.quick_review import (
+    DUE_TIME,
     InvalidReviewRequest,
     QuickReviewService,
     ReviewRequest,
@@ -46,6 +48,7 @@ class Draft:
     emails: str = ""
     cover_letter: str = ""
     due: str = ""
+    due_time: str = "16:00"
     send_emails: bool = True
 
 
@@ -58,15 +61,15 @@ def title_from(filename: str) -> str:
     return PurePath(filename.replace("\\", "/")).stem.replace("_", " ").replace("-", " ").strip()
 
 
-def parse_due(value: str) -> datetime | None:
-    value = value.strip()
-    if not value:
-        return None
+def parse_due(day: str, at: str = "", zone: tzinfo = UTC) -> tuple[datetime | None, time]:
+    """The due day and time in the viewer's zone, as UTC (None: the service picks two weeks
+    from today), and the time of day (16:00 unless another was typed)."""
     try:
-        day = datetime.strptime(value, "%Y-%m-%d").date()
-    except ValueError:
-        raise InvalidReviewRequest("Write the due date like 2026-12-31.") from None
-    return datetime.combine(day, time(23, 59), UTC)
+        at_time = datetime.strptime(at.strip(), "%H:%M").time() if at.strip() else DUE_TIME
+        return parse_day_time(day, at, zone), at_time
+    except (BadTime, ValueError) as problem:
+        message = str(problem) if isinstance(problem, BadTime) else "Write the time like 16:00."
+        raise InvalidReviewRequest(message) from None
 
 
 async def uploaded(form: FormData, key: str) -> tuple[str, bytes] | None:
@@ -180,6 +183,7 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
             emails=kit.text(form, "emails"),
             cover_letter=kit.text(form, "cover_letter"),
             due=kit.text(form, "due").strip(),
+            due_time=kit.text(form, "due_time").strip() or "16:00",
             send_emails=kit.text(form, "send_emails") == "on",
         )
 
@@ -210,7 +214,9 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
         else:
             return again("Choose a file or paste your text.", found)
 
+        zone = viewer_zone(request)
         try:
+            due, due_time = parse_due(draft.due, draft.due_time, zone)
             result = await run(
                 lambda: quick.request_review(
                     user.id,
@@ -220,7 +226,9 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
                         reviewers=found.emails,
                         cover_letter=draft.cover_letter,
                         send_emails=draft.send_emails,
-                        due=parse_due(draft.due),
+                        due=due,
+                        due_time=due_time,
+                        zone=zone,
                     ),
                 )
             )

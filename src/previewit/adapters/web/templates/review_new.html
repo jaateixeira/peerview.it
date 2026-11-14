@@ -49,9 +49,14 @@
       <label class="field">A few words for the reviewers <small>(optional)</small>
         <textarea name="cover_letter" rows="3" maxlength="2000">{{ draft.cover_letter }}</textarea>
       </label>
-      <label class="field">Reviews due <small>(optional, two weeks if empty)</small>
-        <input type="date" name="due" value="{{ draft.due }}">
-      </label>
+      <div class="field-pair">
+        <label class="field">Reviews due <small>(optional, two weeks if empty)</small>
+          <input type="date" name="due" value="{{ draft.due }}" data-min-today min="{{ min_day() }}">
+        </label>
+        <label class="field">at <input type="time" name="due_time" value="{{ draft.due_time }}"></label>
+      </div>
+      <p class="hint">Times are in {{ your_zone() }} time. Join a paid plan to choose when Previewit
+        sends reminders.</p>
       <label class="check">
         <input type="checkbox" name="send_emails"
           {% if not can_send %}disabled{% elif draft.send_emails %}checked{% endif %}>

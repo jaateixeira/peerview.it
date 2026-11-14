@@ -15,7 +15,7 @@
   <ul class="list">
     {% for r in view.revisions | reverse %}
     <li>{% if r.number == shown.number %}<strong>Revision {{ r.number }}</strong>{% else %}<a href="/submissions/{{ sub.id }}?rev={{ r.number }}">Revision {{ r.number }}</a>{% endif %}
-      <small>{{ r.created_at.strftime('%Y-%m-%d %H:%M') }} UTC, {{ r.size }} bytes</small></li>
+      <small>{{ r.created_at|when }}, {{ r.size }} bytes</small></li>
     {% endfor %}
   </ul>
   {% if view.can_revise %}
