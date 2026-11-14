@@ -204,6 +204,8 @@ def build_auth_router(
         user: User | None = request.state.user
         if user is None:
             return RedirectResponse("/login?next=%2Faccount", status_code=303)
+        if user.is_guest:
+            return RedirectResponse("/account/new", status_code=303)  # no account yet (ADR 0020)
         return account_page(request, user)
 
     def failed_login(request: Request, name: str, next_url: str) -> Response:

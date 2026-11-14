@@ -87,6 +87,20 @@ class InMemoryUserRepository:
         self._hashes[user_id] = password_hash
         self._users[user_id] = replace(self._users[user_id], has_password=True)
 
+    def complete_guest(
+        self, user_id: UserId, email: Email, display_name: str, password_hash: str
+    ) -> bool:
+        user = self._users.get(user_id)
+        if user is None or not user.is_guest:
+            return False
+        if self.find_by_email(email) is not None:
+            raise DuplicateEmail
+        self._hashes[user_id] = password_hash
+        self._users[user_id] = replace(
+            user, email=email, email_verified=False, display_name=display_name, has_password=True
+        )
+        return True
+
 
 class InMemoryEmailTokenRepository:
     def __init__(self) -> None:

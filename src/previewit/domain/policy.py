@@ -27,8 +27,9 @@ class VerificationPolicy:
         return user.email is not None and user.email_verified
 
 
-# Unverified users may be invited, join and submit, but cannot review.
-DEFAULT_POLICY = VerificationPolicy(frozenset({Action.REVIEW}))
+# Nothing needs a verified email by default: a personal Invitation link is enough to review,
+# even without an account (ADR 0020). Listing "review" turns guest reviewing off.
+DEFAULT_POLICY = VerificationPolicy(frozenset())
 
 
 def parse_actions(names: Iterable[str]) -> frozenset[Action]:

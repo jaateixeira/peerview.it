@@ -121,7 +121,11 @@ def build_app(
     app.include_router(
         build_rounds_router(rounds=rounds, calls=calls, invitations=invitations, kit=kit)
     )
-    app.include_router(build_invitations_router(invitations=invitations, kit=kit))
+    app.include_router(
+        build_invitations_router(
+            invitations=invitations, kit=kit, auth=auth, verification=verification, codec=codec
+        )
+    )
     app.include_router(build_reviews_router(reviews=reviews, kit=kit))
     app.include_router(build_quick_review_router(quick=quick, kit=kit))
 

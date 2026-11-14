@@ -115,21 +115,14 @@ def test_someone_new_requests_a_review_in_a_few_clicks_and_reviewers_find_the_wo
     shown = rows.filter(has_text=ana).locator("input.link-box").input_value()
     assert shown == invitation_link(outbox, ana)  # the link on screen is the link in the mail
 
-    # a reviewer follows the emailed link, signs up with that address and finds the work
+    # a reviewer follows the emailed link and finds the work, with no account (ADR 0020)
     reviewer_ctx = browser.new_context()
     try:
         reviewer = reviewer_ctx.new_page()
         reviewer.goto(shown)
         expect(reviewer.get_by_text("Maya Maker invited you to review")).to_be_visible()
-        reviewer.get_by_role("link", name="Create an account").click()
-        reviewer.get_by_label("Name").fill("Ana Author")
-        reviewer.get_by_label("Email").fill(ana)
-        reviewer.get_by_label("Password").fill(PASSWORD)
-        reviewer.get_by_role("button", name="Sign up").click()
-        reviewer.goto(outbox.link_for(ana))
-        reviewer.get_by_role("button", name="Confirm email").click()
-        expect(reviewer.get_by_role("heading", name="Email confirmed")).to_be_visible()
-        reviewer.goto(shown)
+        expect(reviewer.get_by_text("No account needed")).to_be_visible()
+        reviewer.get_by_label("Your name").fill("Ana Author")
         reviewer.get_by_role("button", name="Start reviewing").click()
         expect(reviewer.locator("li.card").first).to_contain_text("My thesis chapter")
     finally:

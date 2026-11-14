@@ -1,6 +1,6 @@
 # 0017. Three actors, two calls, invitation links
 
-Status: accepted
+Status: accepted; amended by ADR 0020 (reviewers need no account)
 
 ## Context
 Previewit grew from the Education preset: roles were data supplied by the preset (teacher, assistant, student, ADR 0009), and the only link was a share link (ADR 0011). That hid the shape of the product. Everything Previewit does is one of three things, done by three kinds of people:

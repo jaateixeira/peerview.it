@@ -110,3 +110,11 @@ class CachedUserRepository:
         changed = self._inner.mark_email_verified(user_id, email)
         self._cache.delete(_key(user_id))
         return changed
+
+    def complete_guest(
+        self, user_id: UserId, email: Email, display_name: str, password_hash: str
+    ) -> bool:
+        try:
+            return self._inner.complete_guest(user_id, email, display_name, password_hash)
+        finally:
+            self._cache.delete(_key(user_id))

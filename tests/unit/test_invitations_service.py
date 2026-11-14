@@ -6,8 +6,10 @@ from itertools import count
 import pytest
 
 from previewit.application.artifacts import Upload
+from previewit.application.auth import AuthService, EmailTaken, NotAGuest, WeakPassword
 from previewit.application.calls import ShareLimitReached
 from previewit.application.invitations import (
+    AccountExists,
     InvalidInvitationLink,
     InvitationsService,
     WrongEmail,
@@ -16,11 +18,14 @@ from previewit.application.ports import MailError
 from previewit.application.tenancy import Forbidden, NotFound, VerificationRequired
 from previewit.domain.identity import Email, User, UserId
 from previewit.domain.invitations import InvalidInvitation
+from previewit.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
 from previewit.domain.tenancy import Role
+from tests.unit.test_auth_service import FakeHasher as PlainHasher
 from tests.unit.test_calls_service import PAT, SAM, SUE, TINA
 from tests.unit.test_rounds_service import RoundsWorld
 from tests.unit.test_tenancy_service import AVA, BOB, ZED
 
+LARS = UserId("lars")  # an outsider whose email is not verified
 RITA = UserId("rita")  # an outsider: no membership anywhere, a verified email
 
 
@@ -47,21 +52,26 @@ class InviteWorld(RoundsWorld):
             self.users.add_user(
                 User(uid, uid.title(), Email(f"{uid}@x.fi"), verified, frozenset(), False), None
             )
-        ids = count(1)
-        self.iv = InvitationsService(
+        self._ids = count(1)
+        self._entitlements_for_invites = entitlements or self.c._entitlements
+        self.iv = self.invitations()
+        self.work_by = self.work(SAM, SUE)  # two essays to review
+        self.r = self.round()
+
+    def invitations(self, policy: VerificationPolicy = DEFAULT_POLICY) -> InvitationsService:
+        return InvitationsService(
             self.rr._repo,
             self.c._repo,
             self.t,
             self.t._repo,
             self.users,
-            entitlements or self.c._entitlements,
-            lambda: f"v{next(ids)}",
+            self._entitlements_for_invites,
+            lambda: f"v{next(self._ids)}",
             self.clock,
             mailer=self.mail,
             base_url="https://previewit.test/",
+            policy=policy,
         )
-        self.work_by = self.work(SAM, SUE)  # two essays to review
-        self.r = self.round()
 
     def titles(self, user, space=None):
         return sorted(
@@ -171,11 +181,119 @@ def test_the_invitation_belongs_to_its_email(w: InviteWorld):
     assert not w.t.my_spaces(ZED)
 
 
-def test_an_unverified_email_must_be_confirmed_first(w: InviteWorld):
-    _, token = w.iv.invite(TINA, w.r.id, "lars@x.fi", [w.work_by[SAM].id])
+def test_an_unverified_email_must_be_confirmed_first_when_the_operator_asks(w: InviteWorld):
+    strict = w.invitations(VerificationPolicy(frozenset({Action.REVIEW})))
+    _, token = strict.invite(TINA, w.r.id, "lars@x.fi", [w.work_by[SAM].id])
+    assert strict.readiness(LARS, token) == "confirm_email"
     with pytest.raises(VerificationRequired):
-        w.iv.accept(UserId("lars"), token)
-    assert not w.t.my_spaces(UserId("lars"))
+        strict.accept(LARS, token)
+    assert not w.t.my_spaces(LARS)
+    assert not strict.guests_allowed()
+    with pytest.raises(VerificationRequired):
+        strict.start_as_guest(token)
+
+
+def test_by_default_an_unverified_account_with_that_address_reviews(w: InviteWorld):
+    _, token = w.iv.invite(TINA, w.r.id, "lars@x.fi", [w.work_by[SAM].id])
+    assert w.iv.readiness(LARS, token) == "ready"
+    w.iv.accept(LARS, token)
+    assert w.titles(LARS) == ["sam essay"]
+
+
+# -- reviewing without an account (ADR 0020) ---------------------------------------------------
+
+
+def test_a_visitor_without_an_account_reviews_as_a_guest(w: InviteWorld):
+    _, token = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    guest_id, accepted = w.iv.start_as_guest(token, "  Nina   Newcomer ")
+    guest = w.users.get(guest_id)
+    assert guest is not None and guest.is_guest and guest.display_name == "Nina Newcomer"
+    assert accepted.created == 1 and w.titles(guest_id) == ["sam essay"]
+    assert w.t.space_view(guest_id, w.call.space_id).roles == frozenset({Role.REVIEWER})
+    [view] = w.iv.invitations(TINA, w.r.id)
+    assert view.status == "accepted" and view.accepted_by == "Nina Newcomer"
+    assert w.iv.readiness(guest_id, token) == "ready"
+    w.iv.accept(guest_id, token)  # opening it again as the guest changes nothing
+    assert w.titles(guest_id) == ["sam essay"]
+
+
+def test_a_guest_without_a_name_is_named_after_the_address(w: InviteWorld):
+    _, token = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    guest_id, _ = w.iv.start_as_guest(token)
+    assert w.users.get(guest_id).display_name == "nina"  # type: ignore[union-attr]
+
+
+def test_the_same_link_continues_as_the_same_guest(w: InviteWorld):
+    _, token = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    first, _ = w.iv.start_as_guest(token, "Nina")
+    again, accepted = w.iv.start_as_guest(token, "Someone else")  # another browser, later
+    assert again == first and accepted.created == 0
+    assert w.titles(first) == ["sam essay"]
+
+
+def test_each_invitation_has_its_own_guest(w: InviteWorld):
+    _, one = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    _, two = w.iv.invite(TINA, w.round().id, "nina@x.fi", [w.work_by[SUE].id])  # round 2
+    first, _ = w.iv.start_as_guest(one)
+    second, _ = w.iv.start_as_guest(two)
+    assert first != second
+    assert w.titles(first) == ["sam essay"] and w.titles(second) == ["sue essay"]
+    assert w.iv.readiness(first, two) == "anonymous"  # another invitation's guest: signed out
+    with pytest.raises(InvalidInvitationLink):
+        w.iv.accept(first, two)
+
+
+def test_an_address_with_an_account_logs_in_instead(w: InviteWorld):
+    _, token = w.iv.invite(TINA, w.r.id, "rita@x.fi", [w.work_by[SAM].id])
+    with pytest.raises(AccountExists) as caught:
+        w.iv.start_as_guest(token)
+    assert caught.value.hint == "r***@x.fi"
+    w.iv.accept(RITA, token)  # rita logs in and opens it
+    with pytest.raises(AccountExists):
+        w.iv.start_as_guest(token)  # the link never opens her account
+
+
+def test_an_invitation_is_claimed_once(w: InviteWorld):
+    inv, token = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    guest_id, _ = w.iv.start_as_guest(token)
+    assert not w.rr._repo.claim_invitation(inv.id, UserId("someone-else"))
+    assert [i.id for i in w.rr._repo.invitations_accepted_by(guest_id)] == [inv.id]
+    assert w.iv.invitation_of_guest(guest_id).email.value == "nina@x.fi"  # type: ignore[union-attr]
+    assert w.iv.invitation_of_guest(RITA) is None  # not a guest
+
+
+def test_a_guest_joins_with_a_password_and_keeps_the_reviews(w: InviteWorld):
+    auth = AuthService(w.users, PlainHasher(), lambda: "u-new")
+    _, token = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    guest_id, _ = w.iv.start_as_guest(token, "Nina")
+    with pytest.raises(WeakPassword):
+        auth.join_as_guest(guest_id, Email("nina@x.fi"), "short", "Nina")
+    joined = auth.join_as_guest(guest_id, Email("nina@x.fi"), "long enough password", " Nina N ")
+    assert not joined.is_guest and joined.display_name == "Nina N"
+    assert joined.email == Email("nina@x.fi") and not joined.email_verified
+    assert auth.login_with_password("nina@x.fi", "long enough password").id == guest_id
+    assert w.titles(guest_id) == ["sam essay"]
+    with pytest.raises(NotAGuest):
+        auth.join_as_guest(guest_id, Email("nina@x.fi"), "long enough password", "Nina")
+    with pytest.raises(AccountExists):
+        w.iv.start_as_guest(token)  # she has an account now: she logs in
+
+
+def test_a_guest_cannot_take_an_address_that_has_an_account(w: InviteWorld):
+    auth = AuthService(w.users, PlainHasher(), lambda: "u-new")
+    _, token = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    guest_id, _ = w.iv.start_as_guest(token)
+    auth.register_with_password("nina@x.fi", "long enough password", "The real Nina")
+    with pytest.raises(EmailTaken):
+        auth.join_as_guest(guest_id, Email("nina@x.fi"), "another long password", "Nina")
+    assert w.users.get(guest_id).is_guest  # type: ignore[union-attr]
+
+
+def test_a_guest_must_join_before_making_an_organization(w: InviteWorld):
+    _, token = w.iv.invite(TINA, w.r.id, "nina@x.fi", [w.work_by[SAM].id])
+    guest_id, _ = w.iv.start_as_guest(token)
+    with pytest.raises(Forbidden):
+        w.t.create_organization(guest_id, "Nina's club", "general")
 
 
 def test_an_existing_author_gains_the_reviewer_role_and_keeps_theirs(w: InviteWorld):

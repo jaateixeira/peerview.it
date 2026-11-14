@@ -38,6 +38,10 @@ class InvalidCredentials(Exception):
     pass
 
 
+class NotAGuest(Exception):
+    """Only a guest reviewer can join this way; an account already has its login."""
+
+
 class AuthService:
     def __init__(
         self,
@@ -70,6 +74,28 @@ class AuthService:
         except DuplicateEmail:
             raise EmailTaken from None
         return user
+
+    def join_as_guest(
+        self, user_id: UserId, email: Email, password: str, display_name: str
+    ) -> User:
+        """A guest reviewer (ADR 0020) joins Previewit: the guest becomes an account with a
+        password and the invited address, still unverified, and keeps its reviews."""
+        user = self._users.get(user_id)
+        if user is None or not user.is_guest:
+            raise NotAGuest
+        problem = check_password(password)
+        if problem is not None:
+            raise WeakPassword(problem)
+        name = " ".join(display_name.split()) or user.display_name
+        try:
+            done = self._users.complete_guest(user_id, email, name, self._hasher.hash(password))
+        except DuplicateEmail:
+            raise EmailTaken from None
+        if not done:
+            raise NotAGuest
+        joined = self._users.get(user_id)
+        assert joined is not None
+        return joined
 
     def login_with_password(self, email: str, password: str) -> User:
         try:

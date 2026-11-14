@@ -23,6 +23,10 @@
     {% endfor %}
   </ul>
   {% endif %}
+  {% if request.state.user.is_guest %}
+  <p class="card">You are reviewing as a guest. <a href="/account/new">Join Previewit</a> to create your own
+    review spaces and ask for feedback.</p>
+  {% else %}
   <form method="post" action="/orgs" hx-boost="false" class="card form">
     <h3>Create an organization</h3>
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
@@ -32,5 +36,6 @@
     </label>
     <button class="btn" type="submit">Create organization</button>
   </form>
+  {% endif %}
 </section>
 {% endblock %}

@@ -30,9 +30,11 @@ level = "INFO"                             # TRACE | DEBUG | INFO | WARNING | ER
 # --- Email verification: which actions need a verified email address -------------------
 # Actions: create_organization, invite, join, submit, review.
 # Unverified users can always be invited and can always sign in; this only gates the actions
-# you list. The default (below) lets them do everything except review.
+# you list. The default (below) gates nothing: invited reviewers can even review without an
+# account and are invited to join afterwards (ADR 0020). Listing "review" or "join" turns
+# that off: reviewers then need an account with a confirmed email.
 [policy]
-require_verified_email_for = ["review"]
+require_verified_email_for = []
 
 # --- Login providers (each is enabled when its settings are present) -------------------
 # [login.google]

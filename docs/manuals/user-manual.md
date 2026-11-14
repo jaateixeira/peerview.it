@@ -31,7 +31,7 @@ Everything in Previewit is done by one of three people. You can be more than one
 |---|---|---|---|
 | **Organizing a call for authors** | Organizer, Author | The organizer sends a link; authors open it and submit | M2, protected calls MA |
 | **Organizing peer review** | Organizer | Rubric, round, allocation, then a personal invitation link to each reviewer | M3, M4, MA |
-| **Reviewing by invitation** | Reviewer | Open the link, verify your email, review the work allocated to you | M5, MA |
+| **Reviewing by invitation** | Reviewer | Open the link and review the work allocated to you; no account needed (join afterwards if you like) | M5, MA |
 
 Calls travel as links. A call for authors is **public** (anyone with the plain link can submit) or **protected** (only the link with its token works; the organizer can revoke it or send a new one). An invitation to review is personal: it belongs to the email address it was sent to.
 
@@ -87,11 +87,11 @@ In Moodle, paste the space or call link into the course. Launch from Moodle with
 
 ## 7. Reviewer (M5)
 
-1. Open your invitation link and sign up or log in with the address it was sent to. Confirm that address (we mail you a link), open the invitation again and press **Start reviewing**. The link works for that address only. (MA) Then open **My reviews to do**. Each task is a card with its deadline.
+1. Open your invitation link, type your name if you like and press **Start reviewing**. You need no account. If the address already has a Previewit account, log in with it instead. Open the same link again to come back to your reviews. (MA, ADR 0020) Each task is a card with its deadline.
 2. The work is on the left, criteria on the right.
 3. Select text, or an area of a PDF page, to attach a comment.
 4. Score each criterion; descriptions of the levels are shown beside it.
-5. Everything saves automatically. Submit when done.
+5. Everything saves automatically. Submit when done. If you reviewed without an account, Previewit then offers **Join Previewit**: choose a password to keep your reviews and to ask for reviews of your own work. It is free for reviewers.
 6. In a reviewing group, all members edit one shared review; each edit is recorded.
 
 An anonymity badge always shows what the other side can see, for example "Your name is hidden".
