@@ -24,7 +24,7 @@ Technical plan lives in `docs/PLAN.md`.
 | Pricing | Free tier: under 50 MB of storage and up to 100 shares per user. Students and reviewers never pay. The organiser of the review pays. |
 | Deployment | Hosted site is the easy path and free to start. Self-hosting stays open (AGPL) but is expert-only by design: Debian Linux only, strong technical skills and good hardware required. |
 | First pilot | Founder's own courses |
-| Domain | To be registered as soon as possible |
+| Domain | `peereview.it`, registered 2026-11-14 ([ADR 0021](../adr/0021-domain-peereview-it.md)) |
 
 ## What this means for the code roadmap
 
