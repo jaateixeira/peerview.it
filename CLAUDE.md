@@ -14,7 +14,7 @@ Open-source peer-review platform for ANY organization (education is one preset).
 - New artifact types, allocation strategies, etc. are plugins (`previewit.plugins`), never `if kind == "pdf"` in the core.
 
 ## Business rules (see `docs/business/`, ADR 0005)
-- Hosted-first: the hosted site is the product. Optimise sign-up to first review round (target: under 10 minutes).
+- Hosted-first: the hosted site (`peereview.it`, ADR 0021) is the product. Optimise sign-up to first review round (target: under 10 minutes).
 - Review by link is a core flow: request or give a review from a shared link with minimal sign-up.
 - Free tier: 50 MB of storage and 100 shares per user. The organizer pays above that; students and reviewers never pay. Limits go through the `Entitlements` port, never `if plan == ...`.
 - Year-1 scope: Education preset, text and PDF. No academic-venue features, code review or extra plugins.

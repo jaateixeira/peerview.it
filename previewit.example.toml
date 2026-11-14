@@ -4,7 +4,7 @@
 # Relative file paths are relative to this file.
 
 [server]
-base_url = "https://prreview.example"      # https requires a secret key
+base_url = "https://peereview.example"      # https requires a secret key
 # secret_key = "…"                         # openssl rand -hex 32
 # secret_key_file = "secret.key"           # alternative: read it from a file
 
@@ -25,7 +25,7 @@ level = "INFO"                             # TRACE | DEBUG | INFO | WARNING | ER
 # smtp_user = "…"
 # smtp_password = "…"
 # smtp_security = "starttls"               # starttls | ssl | none
-# from = "Previewit <no-reply@prreview.example>"
+# from = "Previewit <no-reply@peereview.example>"
 
 # --- Email verification: which actions need a verified email address -------------------
 # Actions: create_organization, invite, join, submit, review.
@@ -48,7 +48,7 @@ require_verified_email_for = []
 # private_key_file = "AuthKey.p8"
 
 # [login.haka]
-# entity_id = "https://prreview.example/saml/sp"
+# entity_id = "https://peereview.example/saml/sp"
 # cert_file = "sp.crt"
 # key_file = "sp.key"
 # metadata_url = "https://haka.funet.fi/metadata/haka-metadata.xml"

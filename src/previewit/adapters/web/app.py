@@ -70,6 +70,7 @@ def build_app(
     app = FastAPI(title="Previewit", docs_url=None, redoc_url=None)
     templates = Jinja2Templates(directory=HERE / "templates")
     templates.env.globals["source_url"] = SOURCE_URL
+    templates.env.globals["site_host"] = settings.host
     local_time.install(templates.env)
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
     codec = SessionCodec(settings.secret_key)

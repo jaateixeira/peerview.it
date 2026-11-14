@@ -29,8 +29,8 @@ from saml2.server import Server
 from previewit.adapters.auth.haka import HakaConfig, HakaProvider
 from previewit.domain.identity import Email, Provider
 
-SP_ID = "https://prreview.example/saml/sp"
-ACS = "https://prreview.example/auth/haka/callback"
+SP_ID = "https://peereview.example/saml/sp"
+ACS = "https://peereview.example/auth/haka/callback"
 IDP_ID = "https://idp.jyu.example/idp/shibboleth"
 SSO = "https://idp.jyu.example/idp/profile/SAML2/Redirect/SSO"
 

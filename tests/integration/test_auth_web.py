@@ -47,7 +47,7 @@ def test_signup_logs_in_and_the_session_cookie_is_locked_down():
 
 
 def test_session_cookie_is_secure_on_https_deployments():
-    client, _ = make_client(base_url="https://prreview.example")
+    client, _ = make_client(base_url="https://peereview.example")
     r = _signup(client)
     cookie = next(c for c in r.headers.get_list("set-cookie") if c.startswith("pv_session="))
     assert "Secure" in cookie
@@ -188,7 +188,7 @@ def test_unconfigured_or_unknown_providers_are_404():
 def test_haka_without_a_chosen_idp_goes_to_the_discovery_service_and_back():
     haka = HakaProvider(
         HakaConfig(
-            sp_entity_id="https://prreview.example/saml/sp",
+            sp_entity_id="https://peereview.example/saml/sp",
             acs_url="http://testserver/auth/haka/callback",
             cert_file="c",
             key_file="k",
@@ -202,7 +202,7 @@ def test_haka_without_a_chosen_idp_goes_to_the_discovery_service_and_back():
     location = urlparse(r.headers["location"])
     assert f"{location.scheme}://{location.netloc}{location.path}" == "https://wayf.example/ds"
     query = parse_qs(location.query)
-    assert query["entityID"] == ["https://prreview.example/saml/sp"]
+    assert query["entityID"] == ["https://peereview.example/saml/sp"]
     assert query["return"] == ["http://testserver/auth/haka/login?next=%2Faccount"]
 
 

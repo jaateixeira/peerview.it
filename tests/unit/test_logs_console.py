@@ -40,7 +40,7 @@ def test_an_unknown_level_is_refused():
 def test_the_startup_panel_shows_the_setup_but_no_secrets():
     settings = Settings(
         secret_key="TOPSECRET",
-        base_url="https://prreview.example",
+        base_url="https://peereview.example",
         database_url="postgresql+psycopg://user:dbpassword@db/previewit",
         smtp_password="smtppassword",
         cache_url="valkey://:cachepassword@cache/0",
@@ -53,7 +53,7 @@ def test_the_startup_panel_shows_the_setup_but_no_secrets():
     console = Console(record=True, width=100, force_terminal=False)
     console.print(panel)
     out = console.export_text()
-    for expected in ("Previewit 1.2.3", "prreview.example", "postgresql", "Valkey", "review"):
+    for expected in ("Previewit 1.2.3", "peereview.example", "postgresql", "Valkey", "review"):
         assert expected in out
     for secret in ("TOPSECRET", "dbpassword", "smtppassword", "cachepassword"):
         assert secret not in out

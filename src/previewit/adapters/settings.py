@@ -11,6 +11,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from loguru import logger
 
@@ -60,6 +61,11 @@ class Settings:
     @property
     def origin(self) -> str:
         return self.base_url.rstrip("/")
+
+    @property
+    def host(self) -> str:
+        """The site address as people type it, for example ``peereview.it``."""
+        return urlsplit(self.base_url).netloc
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> Settings:

@@ -17,7 +17,7 @@ def _pem() -> str:
 
 
 def _env(**extra: str) -> dict[str, str]:
-    return {"PREVIEWIT_SECRET_KEY": "s", "PREVIEWIT_BASE_URL": "https://prreview.example", **extra}
+    return {"PREVIEWIT_SECRET_KEY": "s", "PREVIEWIT_BASE_URL": "https://peereview.example", **extra}
 
 
 def _providers(**extra: str):
@@ -30,7 +30,7 @@ def test_nothing_configured_means_password_only():
 
 def test_https_base_url_requires_a_secret_key():
     with pytest.raises(RuntimeError):
-        Settings.from_env({"PREVIEWIT_BASE_URL": "https://prreview.example"})
+        Settings.from_env({"PREVIEWIT_BASE_URL": "https://peereview.example"})
 
 
 def test_dev_gets_a_random_secret_key_when_none_is_set():
@@ -76,7 +76,7 @@ def test_apple_private_key_can_come_from_a_file(tmp_path):
 
 def test_haka_needs_metadata_and_keys():
     haka = {
-        "PREVIEWIT_HAKA_ENTITY_ID": "https://prreview.example/saml/sp",
+        "PREVIEWIT_HAKA_ENTITY_ID": "https://peereview.example/saml/sp",
         "PREVIEWIT_HAKA_CERT_FILE": "sp.crt",
         "PREVIEWIT_HAKA_KEY_FILE": "sp.key",
         "PREVIEWIT_HAKA_METADATA_URL": "https://haka.funet.fi/metadata/haka-metadata.xml",
@@ -116,3 +116,8 @@ def test_haka_needs_discovery_or_a_fixed_idp():
         PREVIEWIT_HAKA_IDP_ENTITY_ID="https://testidp.funet.fi/idp/shibboleth",
     )
     assert set(ok) == {Provider.HAKA}
+
+
+def test_the_site_host_is_read_from_the_base_url():
+    assert Settings("s", base_url="https://peereview.example/").host == "peereview.example"
+    assert Settings("s").host == "localhost:8000"

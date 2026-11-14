@@ -26,7 +26,7 @@ def test_the_file_sets_everything(tmp_path: Path):
         tmp_path,
         """
         [server]
-        base_url = "https://prreview.example"
+        base_url = "https://peereview.example"
         secret_key = "s3cret"
 
         [database]
@@ -36,14 +36,14 @@ def test_the_file_sets_everything(tmp_path: Path):
         smtp_host = "smtp.example"
         smtp_port = 465
         smtp_security = "ssl"
-        from = "Previewit <no-reply@prreview.example>"
+        from = "Previewit <no-reply@peereview.example>"
 
         [login.google]
         client_id = "gid"
         client_secret = "gsecret"
 
         [login.haka]
-        entity_id = "https://prreview.example/saml/sp"
+        entity_id = "https://peereview.example/saml/sp"
         discovery_url = "https://haka.example/ds"
 
         [policy]
@@ -51,12 +51,12 @@ def test_the_file_sets_everything(tmp_path: Path):
         """,
     )
     s = load_settings({"PREVIEWIT_CONFIG": str(path)})
-    assert s.base_url == "https://prreview.example" and s.secret_key == "s3cret"
+    assert s.base_url == "https://peereview.example" and s.secret_key == "s3cret"
     assert s.database_url.startswith("postgresql+psycopg://")
     assert (s.smtp_host, s.smtp_port, s.smtp_security) == ("smtp.example", 465, "ssl")
-    assert s.mail_from == "Previewit <no-reply@prreview.example>"
+    assert s.mail_from == "Previewit <no-reply@peereview.example>"
     assert (s.google_client_id, s.google_client_secret) == ("gid", "gsecret")
-    assert s.haka_entity_id == "https://prreview.example/saml/sp"
+    assert s.haka_entity_id == "https://peereview.example/saml/sp"
     assert s.haka_discovery_url == "https://haka.example/ds"
     assert s.verification_policy.required_for == {Action.REVIEW, Action.SUBMIT}
 
