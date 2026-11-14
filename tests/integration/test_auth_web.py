@@ -130,6 +130,18 @@ def test_posts_from_another_origin_are_refused():
     assert r.status_code == 403
 
 
+def test_a_page_opened_at_another_address_is_told_where_previewit_runs():
+    client, _ = make_client()
+    token = csrf_token(client, "/login")
+    r = client.post(
+        "/login",
+        data={"csrf": token, "email": "a@x.fi", "password": PASSWORD},
+        headers={"Origin": "http://127.0.0.1:8000"},
+    )
+    assert r.status_code == 403
+    assert "open Previewit at http://testserver" in r.text and "127.0.0.1" in r.text
+
+
 def test_a_tampered_session_cookie_means_anonymous():
     client, _ = make_client()
     _signup(client)

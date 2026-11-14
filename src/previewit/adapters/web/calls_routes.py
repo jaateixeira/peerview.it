@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, tzinfo
 from typing import Any
 
 from fastapi import APIRouter, Request
@@ -13,6 +13,7 @@ from starlette.datastructures import FormData, UploadFile
 from starlette.responses import Response
 
 from previewit.adapters.web.kit import WebKit
+from previewit.adapters.web.local_time import BadTime, parse_local, viewer_zone
 from previewit.adapters.web.tenancy_routes import current_user
 from previewit.application.artifacts import ArtifactError, ArtifactType, UnknownArtifactType, Upload
 from previewit.application.calls import (
@@ -34,15 +35,12 @@ from previewit.domain.tenancy import GroupId, SpaceId
 MAX_BODY_BYTES = 12_000_000
 
 
-def parse_deadline(value: str) -> datetime | None:
-    """`datetime-local` input, read as UTC."""
-    value = value.strip()
-    if not value:
-        return None
+def parse_deadline(value: str, zone: tzinfo = UTC) -> datetime | None:
+    """`datetime-local` input in the viewer's zone, as UTC."""
     try:
-        return datetime.strptime(value, "%Y-%m-%dT%H:%M").replace(tzinfo=UTC)
-    except ValueError:
-        raise InvalidCall("Use a date and time like 2026-12-31 23:59.") from None
+        return parse_local(value, zone)
+    except BadTime as e:
+        raise InvalidCall(str(e)) from None
 
 
 def parse_access(value: str) -> CallAccess:
@@ -107,9 +105,6 @@ def build_calls_router(*, calls: CallsService, rubrics: RubricsService, kit: Web
                 "public_url": f"{kit.settings.origin}/c/{call_id}"
                 if view.call.access is CallAccess.PUBLIC and view.call.published
                 else None,
-                "closes_value": view.call.closes_at.strftime("%Y-%m-%dT%H:%M")
-                if view.call.closes_at
-                else "",
             },
             status,
         )
@@ -196,7 +191,7 @@ def build_calls_router(*, calls: CallsService, rubrics: RubricsService, kit: Web
                     description=kit.text(form, "description"),
                     artifact_type=kit.text(form, "artifact_type"),
                     group_work=kit.text(form, "group_work") == "on",
-                    closes_at=parse_deadline(kit.text(form, "closes_at")),
+                    closes_at=parse_deadline(kit.text(form, "closes_at"), viewer_zone(request)),
                     published=kit.text(form, "published") == "on",
                     access=parse_access(kit.text(form, "access")),
                 )
@@ -243,7 +238,7 @@ def build_calls_router(*, calls: CallsService, rubrics: RubricsService, kit: Web
                     CallId(call_id),
                     title=kit.text(form, "title"),
                     description=kit.text(form, "description"),
-                    closes_at=parse_deadline(kit.text(form, "closes_at")),
+                    closes_at=parse_deadline(kit.text(form, "closes_at"), viewer_zone(request)),
                     published=kit.text(form, "published") == "on",
                     access=parse_access(kit.text(form, "access"))
                     if kit.text(form, "access")

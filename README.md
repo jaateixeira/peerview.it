@@ -20,7 +20,7 @@ The easy way to use Previewit will be the hosted service, with a free tier (in p
 ## Quick start
 ```bash
 make install   # uv sync + Playwright browser
-make run       # http://127.0.0.1:8000
+make run       # http://localhost:8000
 make check     # lint, types, layering, all tests
 ```
 Stack: Python, FastAPI, Jinja2, HTMX. Tests: pytest, hypothesis, Playwright.

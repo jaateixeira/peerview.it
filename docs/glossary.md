@@ -128,7 +128,8 @@ These are guidance for the words we write (help text, rubric templates, empty st
 
 | Core term | Meaning | Status | Code | Notes |
 |---|---|---|---|---|
-| **Round** | One cycle of review on a Call: reviewers write Reviews. Numbered 1, 2, 3 per Call. Status (scheduled, open, closed) is computed from the clock. | Core | `ReviewRound`, `RoundStatus` | Say *Round*, not *iteration* or *cycle*. |
+| **Round** | One cycle of review on a Call: reviewers write Reviews. Numbered 1, 2, 3 per Call. Status (scheduled, open, closed) is computed from the clock. | Core | `ReviewRound`, `RoundStatus` | Say *Round*, not *iteration* or *cycle*. Its closing time is shown as **Reviews due**: a day and a time, 16:00 by default, in the viewer's time zone (ADR 0019). |
+| **Reminder** | A message Previewit sends before the Reviews are due. | Deferred (M8) | | On a paid plan the Organizer chooses when it goes out (ADR 0019). |
 | **Review task** | One reviewer Party paired with one Submission, at a given Revision. | Core | `ReviewTask` | "Task" alone is not used. Users see "My reviews". |
 | **Allocation** | Deciding which reviewers get which Submissions, honouring Conflicts and balancing load. | Core | `AllocationStrategy`, `Allocation`, `Slot` | Strategies: random, round-robin, manual. **Never "assignment"**: Education calls a Call an *assignment*, and "assigning reviewers" would be ambiguous. The Education button reads "Allocate reviewers". |
 | **Load balancing** | A property of an Allocation: loads differ by at most one when only authorship Conflicts exist. | Core | `balanced_assign`, `rebalance` | Not a feature name. |

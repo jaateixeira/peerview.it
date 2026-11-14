@@ -21,7 +21,7 @@ integration:
 acceptance:
 	uv run pytest tests/acceptance $(PYTEST_ARGS)
 run:
-	uv run uvicorn previewit.bootstrap:create_app --factory --reload
+	uv run uvicorn previewit.bootstrap:create_app --factory --reload --host localhost --port 8000
 
 report:
 	mkdir -p reports

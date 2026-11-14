@@ -150,3 +150,38 @@ def test_a_file_that_cannot_be_reviewed_is_explained_and_nothing_is_lost(page: P
     request.send()
     expect(page.get_by_role("alert").filter(has_text="PDF files and plain text")).to_be_visible()
     expect(page.get_by_label("Email addresses")).to_have_value(friend)
+
+
+LOCAL_DAY = """(offset) => {
+  const d = new Date(Date.now() + offset * 86400000), p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}"""
+
+
+def test_reviews_are_due_from_today_at_four_in_the_afternoon_local_time(
+    browser: Browser, base_url: str
+):
+    context = browser.new_context(timezone_id="Europe/Helsinki")
+    try:
+        page = context.new_page()
+        request = RequestReviewPage(page, base_url)
+        request.sign_up_from_the_home_page("Maya Maker", unique("maya"))
+        page.reload()  # the browser has told Previewit its time zone by now
+
+        due = page.get_by_label("Reviews due")
+        today, tomorrow = page.evaluate(LOCAL_DAY, 0), page.evaluate(LOCAL_DAY, 1)
+        expect(due).to_have_attribute("min", today)  # the calendar starts today
+        expect(page.get_by_label("at", exact=True)).to_have_value("16:00")
+        expect(page.get_by_text("Times are in Europe/Helsinki time")).to_be_visible()
+        expect(page.get_by_text("Join a paid plan to choose when Previewit")).to_be_visible()
+
+        request.title("Chapter two")
+        request.attach("chapter.pdf", PDF, "application/pdf")
+        request.type_reviewers(unique("ana"))
+        due.fill(tomorrow)
+        request.send()
+        expect(page.get_by_role("heading", name="Ready!")).to_be_visible()  # links, not mailed
+        page.get_by_role("link", name="Follow the reviews").click()
+        expect(page.get_by_text(re.compile(rf"Reviews due {tomorrow} 16:00 EES?T"))).to_be_visible()
+    finally:
+        context.close()

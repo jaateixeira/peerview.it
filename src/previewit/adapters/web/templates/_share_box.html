@@ -11,7 +11,7 @@
 {% if shares %}
 <ul class="list">
   {% for s in shares %}
-  <li>Link expires {{ s.expires_at.strftime('%Y-%m-%d') }}{% if s.revoked %} (revoked){% endif %}
+  <li>Link expires {{ s.expires_at|day }}{% if s.revoked %} (revoked){% endif %}
     {% if not s.revoked %}
     <form method="post" action="{{ base }}/shares/{{ s.id }}/revoke" hx-boost="false" class="inline">
       <input type="hidden" name="csrf" value="{{ csrf_token }}">

@@ -12,5 +12,12 @@
     {% for key, label in anonymity_options %}<option value="{{ key }}" {% if (r.anonymity_key if r else default_anonymity) == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
   </select>
 </label>
-<label class="field">Opens (UTC, optional) <input type="datetime-local" name="opens_at" value="{{ r.opens_at.strftime('%Y-%m-%dT%H:%M') if r and r.opens_at else '' }}"></label>
-<label class="field">Closes (UTC, optional) <input type="datetime-local" name="closes_at" value="{{ r.closes_at.strftime('%Y-%m-%dT%H:%M') if r and r.closes_at else '' }}"></label>
+<label class="field">Opens <small>(optional)</small> <input type="datetime-local" name="opens_at" value="{{ r.opens_at|local_input if r else '' }}"></label>
+{% set due = r.closes_at if r else None %}
+<div class="field-pair">
+  <label class="field">Reviews due <small>(optional; the round closes then)</small>
+    <input type="date" name="closes_on" data-min-today min="{{ min_day(due) }}" value="{{ due|day }}"></label>
+  <label class="field">at <input type="time" name="closes_time" value="{{ due|time_of }}"></label>
+</div>
+<p class="hint">Times are in {{ your_zone() }} time. Reviews are due at 16:00 unless you choose another time.
+  Join a paid plan to choose when Previewit sends reminders.</p>

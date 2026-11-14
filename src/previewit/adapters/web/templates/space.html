@@ -54,7 +54,7 @@
     {% for i in invites %}
     <li>
       {{ role_label(i.roles) }} link, used {{ i.uses }}{% if i.max_uses %} of {{ i.max_uses }}{% endif %} times,
-      expires {{ i.expires_at.strftime('%Y-%m-%d') }}{% if i.revoked %} (revoked){% endif %}
+      expires {{ i.expires_at|day }}{% if i.revoked %} (revoked){% endif %}
       {% if not i.revoked %}
       <form method="post" action="/spaces/{{ view.space.id }}/invites/{{ i.id }}/revoke" hx-boost="false" class="inline">
         <input type="hidden" name="csrf" value="{{ csrf_token }}">
