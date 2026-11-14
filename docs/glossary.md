@@ -41,6 +41,7 @@ Status column:
 | **Artifact** | The content of a Revision, of a type supplied by a plugin (text, PDF). | Core | `Artifact`, `ArtifactType` | (none) | attachment |
 | **Review** | The reviewer Party's response to one Submission: answers to the Rubric plus Annotations. | Core | `Review` | (none) | feedback (that is what an author *receives*), evaluation |
 | **Reviewer** / **Author** | Two roles (above) and, per task, two *relations* a Party has to a Submission. The same Party can be author of one Submission and reviewer of another. | Core | `ReviewTask.reviewer`, `Submission.author` | (none) | grader, evaluator, student author |
+| **Guest reviewer** | A Reviewer who opened an Invitation without an account. Previewit makes a user with no email or password for that one Invitation; the link brings the guest back. After the review, the guest is invited to **join** (choose a password) and keeps the reviews (ADR 0020). Not the `guest` flag of a call or Submission view, which means read-only access through a Share link. | Core | `User.is_guest`, `InvitationsService.start_as_guest` | (none) | anonymous user, temporary account |
 | **Share link** | A link that gives access to one Call or Submission with minimal sign-up. The author is the sender; an Invitation is personal and bound to an email; a share link is not. | Core | `ShareLink` | (none) | invite (an invite adds a Member) |
 | **Preset** | A bundle of vocabulary, roles, rubric templates and defaults for a kind of organization. | Core | `Preset` | (Education) | mode, template (a template is a Rubric template) |
 | **Request a review** | The quick way to start: one page where a person adds a file and the reviewers' email addresses and sends it out. It makes the Review space, call, Submission, Round and Invitations in one step (ADR 0018). | Core | `QuickReviewService`, `/review/new` | (none) | wizard, quick start, upload form |
@@ -50,7 +51,7 @@ Status column:
 
 1. **Organizing a call for authors**: the Organizer creates and sends a Call; Authors submit.
 2. **Organizing peer review**: the Organizer builds a Rubric and a Round, allocates, sends a call for reviewers and follows progress.
-3. **Reviewing by invitation**: a Reviewer opens an Invitation, verifies an email and reviews.
+3. **Reviewing by invitation**: a Reviewer opens an Invitation and reviews, with or without an account; a guest is invited to join afterwards (ADR 0020).
 
 An **Auditor** (Deferred) will audit the review process: read-only over reviews, allocation and the edit trail.
 

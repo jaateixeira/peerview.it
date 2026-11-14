@@ -86,6 +86,12 @@ class User:
     identities: frozenset[IdentityKey]
     has_password: bool
 
+    @property
+    def is_guest(self) -> bool:
+        """Opened an Invitation without an account (ADR 0020): no password, no login
+        provider and no email of its own. Joining Previewit turns the guest into an account."""
+        return self.email is None and not self.has_password and not self.identities
+
 
 PasswordProblem = Literal["too_short", "too_long"]
 

@@ -5,6 +5,7 @@ import uuid
 import pytest
 from playwright.sync_api import Browser, Page, expect
 from tests.acceptance.test_calls import PASSWORD, TeacherPage
+from tests.acceptance.test_review_workspace import ReviewPage
 from tests.acceptance.test_rounds import RoundsPage, join_and_submit
 
 pytestmark = pytest.mark.acceptance
@@ -32,31 +33,40 @@ def test_organizer_invites_a_reviewer_who_opens_the_link_and_finds_the_work(
         assert "/i/" in link
         expect(page.get_by_text(f"{email}: waiting, 1 to review")).to_be_visible()
 
-        # Process 3: the invited person signs up with that address, confirms it and reviews
+        # Process 3: the invited person reviews straight from the link, with no account
         reviewer = reviewer_ctx.new_page()
         reviewer.goto(link)
         expect(reviewer.get_by_text("Tina Teacher invited you to review")).to_be_visible()
         expect(reviewer.get_by_text("Sam")).to_have_count(0)  # no author names for strangers
-        reviewer.get_by_role("link", name="Create an account").click()
-        reviewer.get_by_label("Name").fill("Rita Reviewer")
-        reviewer.get_by_label("Email").fill(email)
-        reviewer.get_by_label("Password").fill(PASSWORD)
-        reviewer.get_by_role("button", name="Sign up").click()
-        expect(reviewer.get_by_text("Confirm your email address first")).to_be_visible()
-
-        reviewer.goto(outbox.link_for(email))
-        reviewer.get_by_role("button", name="Confirm email").click()
-        expect(reviewer.get_by_role("heading", name="Email confirmed")).to_be_visible()
-
-        reviewer.goto(link)
+        reviewer.get_by_label("Your name").fill("Rita Reviewer")
         reviewer.get_by_role("button", name="Start reviewing").click()
         expect(reviewer.get_by_role("heading", name="My reviews", level=1)).to_be_visible()
         cards = reviewer.locator("li.card")
         expect(cards).to_have_count(1)
         expect(cards.first).to_contain_text("On testing")
-
         page.reload()
         expect(page.get_by_text(f"{email}: accepted (Rita Reviewer)")).to_be_visible()
+
+        cards.first.locator("a").click()
+        expect(reviewer.get_by_role("heading", name="The work", exact=True)).to_be_visible()
+        expect(reviewer.get_by_text("Thank you for reviewing")).to_have_count(0)
+        ReviewPage(reviewer).add_comment("testing", "A clear title.")
+
+        # once the review is done, Previewit invites the reviewer to join
+        card = reviewer.locator(".join-card")
+        expect(card).to_contain_text("Thank you for reviewing")
+        card.get_by_role("link", name="Join Previewit").click()
+        expect(reviewer.get_by_label("Email")).to_have_value(email)
+        reviewer.get_by_label("Password").fill(PASSWORD)
+        reviewer.get_by_role("button", name="Join Previewit").click()
+        expect(reviewer.get_by_role("heading", name="Your account")).to_be_visible()
+        reviewer.goto(outbox.link_for(email))
+        reviewer.get_by_role("button", name="Confirm email").click()
+        expect(reviewer.get_by_role("heading", name="Email confirmed")).to_be_visible()
+        reviewer.get_by_role("link", name="Spaces").first.click()
+        reviewer.get_by_role("link", name="Software Engineering").click()
+        reviewer.get_by_role("link", name="My reviews").click()
+        expect(reviewer.locator("li.card").first).to_contain_text("On testing")
     finally:
         reviewer_ctx.close()
         author_ctx.close()

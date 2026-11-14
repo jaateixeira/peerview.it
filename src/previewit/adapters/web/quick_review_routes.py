@@ -7,7 +7,7 @@ from datetime import UTC, datetime, time, tzinfo
 from pathlib import PurePath
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData, UploadFile
 from starlette.responses import Response
@@ -117,6 +117,8 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
 
     @router.get("/review/new", response_class=HTMLResponse)
     async def new_review(request: Request) -> Response:
+        if current_user(request).is_guest:  # a guest joins first (ADR 0020)
+            return RedirectResponse("/account/new", status_code=303)
         return form_page(request, Draft())
 
     @router.get("/review/samples/{name}")
@@ -172,6 +174,8 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
     @router.post("/review")
     async def request_review(request: Request) -> Response:
         user = current_user(request)
+        if user.is_guest:
+            return RedirectResponse("/account/new", status_code=303)
         if too_big(request):
             return HTMLResponse("That upload is too large.", 413)
         form = await kit.checked_form(request)

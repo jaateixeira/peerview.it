@@ -4,12 +4,14 @@ import re
 
 from fastapi.testclient import TestClient
 
+from previewit.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
 from tests.integration.test_calls_web import create_call, submit_text
 from tests.integration.test_rounds_web import new_round, page_of, round_id
-from tests.integration.test_tenancy_web import Course, post, signup
+from tests.integration.test_tenancy_web import PASSWORD, Course, post, signup
 from tests.integration.web_fakes import csrf_token
 
 EMAIL = "rita@x.fi"
+REVIEWERS_VERIFIED = VerificationPolicy(frozenset({Action.REVIEW}))
 
 
 def invite(c: Course, call: str, email=EMAIL, work: tuple[str, ...] = ()):
@@ -39,8 +41,8 @@ def verified_visitor(c: Course, email=EMAIL, name="Rita Reviewer", next_="/space
     return visitor
 
 
-def course_with_round():
-    c = Course()
+def course_with_round(policy: VerificationPolicy = DEFAULT_POLICY):
+    c = Course(policy)
     sam = c.join_student("sam@x.fi", "Sam Student")
     call = create_call(c, "Essay")
     sub = submit_text(sam, call, "Essay by Sam", "Please review me").headers["location"]
@@ -57,14 +59,14 @@ def test_the_organizer_invites_a_reviewer_and_the_link_is_shown_once():
     assert link not in again and "rita@x.fi: waiting, 1 to review" in again
 
 
-def test_a_stranger_signs_up_opens_the_link_and_reviews():
+def test_someone_with_an_account_logs_in_opens_the_link_and_reviews():
     c, call, sub = course_with_round()
     link = link_in(invite(c, call, work=(sub,))[0].text)
     visitor = c.h.new_client()
     page = visitor.get(link)
     assert page.status_code == 200 and "Tina Teacher invited you to review" in page.text
     assert "r***@x.fi" in page.text and "Sam" not in page.text  # no author names, no work
-    assert "Create an account" in page.text
+    assert "No account needed" in page.text and "Create an account" not in page.text
     visitor = verified_visitor(c, next_=link)
     r = post(visitor, link, page=link)
     assert r.status_code == 303 and r.headers["location"] == f"{c.space}/reviews"
@@ -83,15 +85,107 @@ def test_the_link_works_for_its_own_email_only():
     assert other.get(f"{c.space}/reviews").status_code == 404  # not admitted
 
 
-def test_an_unverified_email_is_asked_to_confirm_first():
-    c, call, sub = course_with_round()
+def test_when_the_operator_asks_reviewers_confirm_their_email_first():
+    c, call, sub = course_with_round(REVIEWERS_VERIFIED)
     link = link_in(invite(c, call, work=(sub,))[0].text)
     visitor = c.h.new_client()
+    page = visitor.get(link).text
+    assert "Create an account" in page and "No account needed" not in page
+    r = post(visitor, f"{link}/guest", {"name": "Rita"}, page="/login")
+    assert r.status_code == 403 and "asks reviewers for an account" in r.text
     signup(visitor, EMAIL, "Rita Reviewer", next_=link)
     page = visitor.get(link).text
     assert "Confirm your email address first" in page and "Start reviewing" not in page
     r = post(visitor, link, page="/account")
     assert r.status_code == 403 and "Verify your email" in r.text
+
+
+def test_by_default_an_unconfirmed_account_reviews_too():
+    c, call, sub = course_with_round()
+    link = link_in(invite(c, call, work=(sub,))[0].text)
+    visitor = c.h.new_client()
+    signup(visitor, EMAIL, "Rita Reviewer", next_=link)
+    assert "Start reviewing" in visitor.get(link).text
+    r = post(visitor, link, page=link)
+    assert r.status_code == 303 and "Essay by Sam" in visitor.get(f"{c.space}/reviews").text
+
+
+# -- reviewing without an account (ADR 0020) ---------------------------------------------------
+
+
+def start_as_guest(c: Course, link: str, name: str = "Rita Reviewer"):
+    guest = c.h.new_client()
+    r = post(guest, f"{link}/guest", {"name": name}, page=link)
+    return guest, r
+
+
+def test_a_visitor_reviews_without_an_account_and_is_then_invited_to_join():
+    c, call, sub = course_with_round()
+    link = link_in(invite(c, call, work=(sub,))[0].text)
+    guest, r = start_as_guest(c, link)
+    assert r.status_code == 303 and r.headers["location"] == f"{c.space}/reviews"
+    mine = guest.get(f"{c.space}/reviews").text
+    assert "Essay by Sam" in mine and 'href="/account/new">Join Previewit' in mine
+    assert "rita@x.fi: accepted (Rita Reviewer)" in c.teacher.get(page_of(c, call)).text
+
+    task = re.search(r'href="(/tasks/\w+)"', mine).group(1)  # type: ignore[union-attr]
+    page = guest.get(task).text
+    assert "Please review me" in page and "Thank you for reviewing" not in page
+    start = "Please review me".index("review")
+    data = {"quote": "review", "start": str(start), "end": str(start + 6), "body": "Clear ask"}
+    assert post(guest, f"{task}/annotations", data, page=task).status_code == 303
+    page = guest.get(task).text
+    assert "Clear ask" in page and "Thank you for reviewing" in page  # done: invite to join
+
+    join = guest.get("/account/new").text
+    assert 'value="rita@x.fi"' in join and "readonly" in join
+    weak = post(guest, "/account/new", {"name": "Rita", "password": "short"}, page="/account/new")
+    assert weak.status_code == 400 and "at least 10 characters" in weak.text
+    data = {"name": "Rita R", "password": PASSWORD}
+    joined = post(guest, "/account/new", data, page="/account/new")
+    assert joined.status_code == 303 and joined.headers["location"] == "/account"
+    assert c.h.outbox.sent[-1][0] == "rita@x.fi"  # a link to confirm the address
+    assert guest.get("/account/new").headers["location"] == "/account"
+    assert "Clear ask" in guest.get(task).text  # the review stayed with her
+
+    later = c.h.new_client()
+    login = {"email": EMAIL, "password": PASSWORD, "next": "/spaces"}
+    assert post(later, "/login", login, page="/login").status_code == 303
+    assert "Essay by Sam" in later.get(f"{c.space}/reviews").text
+
+
+def test_the_link_continues_the_same_guest_review():
+    c, call, sub = course_with_round()
+    link = link_in(invite(c, call, work=(sub,))[0].text)
+    start_as_guest(c, link)
+    other, again = start_as_guest(c, link, name="Someone")  # another device, later
+    assert again.status_code == 303
+    assert "Essay by Sam" in other.get(f"{c.space}/reviews").text
+    assert "rita@x.fi: accepted (Rita Reviewer)" in c.teacher.get(page_of(c, call)).text
+
+
+def test_an_address_with_an_account_is_asked_to_log_in():
+    c, call, sub = course_with_round()
+    verified_visitor(c)
+    link = link_in(invite(c, call, work=(sub,))[0].text)
+    _, r = start_as_guest(c, link)
+    assert r.status_code == 409 and "already has a Previewit account" in r.text
+    assert "/login?next=" in r.text and "set-cookie" not in r.headers
+
+
+def test_a_guest_joins_before_making_an_organization_or_requesting_reviews():
+    c, call, sub = course_with_round()
+    link = link_in(invite(c, call, work=(sub,))[0].text)
+    guest, _ = start_as_guest(c, link)
+    assert "You are reviewing as a guest" in guest.get("/spaces").text
+    assert guest.get("/review/new").headers["location"] == "/account/new"
+    assert guest.get("/account").headers["location"] == "/account/new"
+    r = post(guest, "/orgs", {"name": "Rita's club", "preset": "general"}, page="/account/new")
+    assert r.status_code == 403
+    out = post(guest, "/logout", page="/account/new")  # a guest on a shared computer
+    assert out.status_code == 303 and guest.get("/account/new").status_code in (303, 401)
+    _, back = start_as_guest(c, link)  # the link brings the reviews back
+    assert back.status_code == 303
 
 
 def test_a_revoked_or_unknown_link_is_not_valid():

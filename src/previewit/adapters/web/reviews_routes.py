@@ -12,7 +12,7 @@ from starlette.responses import Response
 
 from previewit.adapters.web.kit import WebKit
 from previewit.adapters.web.tenancy_routes import current_user
-from previewit.application.reviews import AnswerErrors, ReviewsService
+from previewit.application.reviews import AnswerErrors, ReviewsService, Workspace
 from previewit.domain.identity import User
 from previewit.domain.reviews import AnnotationId, EditConflict, InvalidReview
 from previewit.domain.rounds import TaskId
@@ -40,6 +40,13 @@ def build_reviews_router(*, reviews: ReviewsService, kit: WebKit) -> APIRouter:
     router = APIRouter()
     run = run_in_threadpool
 
+    def reviewed(ws: Workspace) -> bool:
+        """Done enough to invite a guest to join (ADR 0020): the review is submitted, or,
+        when there is no rubric to submit, the guest has commented on the work."""
+        if ws.questions:
+            return ws.review is not None and ws.review.submitted
+        return bool(ws.annotations)
+
     def page(
         request: Request,
         user: User,
@@ -60,6 +67,7 @@ def build_reviews_router(*, reviews: ReviewsService, kit: WebKit) -> APIRouter:
                 "ws": ws,
                 "error": error,
                 "notice": notice,
+                "invite_to_join": user.is_guest and reviewed(ws),
             },
             status,
         )

@@ -95,6 +95,16 @@ class InMemoryRoundRepository:
     def count_invitations(self, created_by: UserId) -> int:
         return sum(1 for i in self._invitations.values() if i.created_by == created_by)
 
+    def invitations_accepted_by(self, user_id: UserId) -> list[Invitation]:
+        return [i for i in self._invitations.values() if i.accepted_by == user_id]
+
+    def claim_invitation(self, invitation_id: str, user_id: UserId) -> bool:
+        current = self._invitations.get(invitation_id)
+        if current is None or current.accepted_by is not None:
+            return False
+        self._invitations[invitation_id] = replace(current, accepted_by=user_id)
+        return True
+
 
 def _number(round_: ReviewRound) -> int:
     return round_.number

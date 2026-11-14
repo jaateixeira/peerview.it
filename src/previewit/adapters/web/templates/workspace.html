@@ -8,6 +8,14 @@
     {% if ws.closed %}This round has closed; the review can no longer change.{% elif not ws.can_edit %}You are reading this review; only the reviewer can edit it.{% endif %}</small></p>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+  {% if invite_to_join %}
+  <aside class="card join-card">
+    <h2>Thank you for reviewing</h2>
+    <p>Join Previewit to keep your reviews and to get feedback on your own work. It takes a
+       password, and it is free for reviewers.</p>
+    <a class="btn" href="/account/new">Join Previewit</a>
+  </aside>
+  {% endif %}
 
   <div class="workspace">
     <div class="workspace-artifact card" id="artifact" {% if ws.annotatable and ws.can_edit %}data-annotatable{% endif %}>

@@ -2,8 +2,12 @@
 
 Process 2 (organizing peer review): the organizer invites each reviewer by email and may
 attach the work they should review. Process 3 (review by invitation): the invited person
-opens the link with that verified email, becomes a Reviewer in the Space and finds their
-review tasks. A token is a secret: only its hash is stored, and it works for one email.
+opens the link, becomes a Reviewer in the Space and finds their review tasks. A token is a
+secret: only its hash is stored, and it works for one email.
+
+No account is needed (ADR 0020): a visitor without one reviews as a guest made for that one
+invitation, and is invited to join Previewit afterwards. An address that already has an
+account logs in first, because a link must never open someone's account.
 """
 
 from __future__ import annotations
@@ -28,7 +32,7 @@ from previewit.application.tenancy import Forbidden, NotFound, TenancyService, V
 from previewit.application.verification import hash_token
 from previewit.domain.allocation import conflicts
 from previewit.domain.calls import Call, SubmissionId
-from previewit.domain.identity import UserId
+from previewit.domain.identity import User, UserId
 from previewit.domain.invitations import (
     MAX_COVER_LETTER,
     MAX_SUBMISSIONS_PER_INVITATION,
@@ -43,10 +47,19 @@ from previewit.domain.rounds import ReviewRound, ReviewTask, RoundId, RoundStatu
 from previewit.domain.tenancy import Permission, Role, SpaceId
 
 DEFAULT_INVITATION_TTL = timedelta(days=30)
+MAX_GUEST_NAME = 80
 
 
 class InvalidInvitationLink(Exception):
     """The token is unknown, revoked, expired, used by someone else or for a closed round."""
+
+
+class AccountExists(Exception):
+    """The invited address has an account: its owner logs in instead of reviewing as a guest."""
+
+    def __init__(self, hint: str) -> None:
+        super().__init__(hint)
+        self.hint = hint
 
 
 class WrongEmail(Exception):
@@ -260,16 +273,26 @@ class InvitationsService:
             len(inv.submission_ids),
         )
 
+    def guests_allowed(self) -> bool:
+        """False when the operator requires a verified email to review or join (config
+        `policy`): a guest has no email at all."""
+        return not ({Action.REVIEW, Action.JOIN} & self._policy.required_for)
+
     def readiness(self, actor: UserId, token: str) -> str:
         """What the signed-in person must do before opening: `ready`, `confirm_email` (their
-        address matches but is not verified yet) or `other_email` (a different account)."""
+        address matches but the operator wants it verified first), `other_email` (a
+        different account) or `anonymous` (a guest from another invitation: treat as signed
+        out)."""
         found = self._live(token)
         if found is None:
             raise InvalidInvitationLink
+        inv = found[0]
         user = self._users.get(actor)
-        if user is None or user.email != found[0].email:
+        if user is not None and user.is_guest:
+            return "ready" if inv.accepted_by == actor else "anonymous"
+        if user is None or user.email != inv.email:
             return "other_email"
-        return "ready" if user.email_verified else "confirm_email"
+        return "ready" if self._policy.allows(user, Action.REVIEW) else "confirm_email"
 
     def accept(self, actor: UserId, token: str) -> Accepted:
         found = self._live(token)
@@ -279,10 +302,55 @@ class InvitationsService:
         if inv.accepted_by is not None and inv.accepted_by != actor:
             raise InvalidInvitationLink
         user = self._users.get(actor)
-        if user is None or user.email != inv.email:
-            raise WrongEmail(mask_email(inv.email))
-        if not user.email_verified:
+        if user is None or (user.is_guest and inv.accepted_by != actor):
+            raise InvalidInvitationLink
+        if not user.is_guest:
+            if user.email != inv.email:
+                raise WrongEmail(mask_email(inv.email))
+            if not self._policy.allows(user, Action.REVIEW):
+                raise VerificationRequired(Action.REVIEW)
+        return self._admit(actor, inv, round_)
+
+    def start_as_guest(self, token: str, display_name: str = "") -> tuple[UserId, Accepted]:
+        """Review without an account (ADR 0020). The first visit makes a guest for this one
+        invitation; a later visit with the same link continues as that guest. Returns the
+        user to sign in as."""
+        found = self._live(token)
+        if found is None:
+            raise InvalidInvitationLink
+        inv, round_, _ = found
+        if not self.guests_allowed():
             raise VerificationRequired(Action.REVIEW)
+        if inv.accepted_by is None:
+            if self._users.find_by_email(inv.email) is not None:
+                raise AccountExists(mask_email(inv.email))
+            name = " ".join(display_name.split())[:MAX_GUEST_NAME]
+            guest = User(
+                UserId(self._new_id()),
+                name or inv.email.value.split("@")[0],
+                None,
+                False,
+                frozenset(),
+                False,
+            )
+            self._users.add_user(guest, None)
+            if self._repo.claim_invitation(inv.id, guest.id):
+                return guest.id, self._admit(guest.id, replace(inv, accepted_by=guest.id), round_)
+            inv = self._repo.get_invitation(inv.id) or inv  # opened twice at once: one wins
+        earlier = self._users.get(inv.accepted_by) if inv.accepted_by else None
+        if earlier is None or not earlier.is_guest:
+            raise AccountExists(mask_email(inv.email))  # an account opened it: log in
+        return earlier.id, self._admit(earlier.id, inv, round_)
+
+    def invitation_of_guest(self, actor: UserId) -> Invitation | None:
+        """The invitation a guest opened, for the address they may join with."""
+        user = self._users.get(actor)
+        if user is None or not user.is_guest:
+            return None
+        return next(iter(self._repo.invitations_accepted_by(actor)), None)
+
+    def _admit(self, actor: UserId, inv: Invitation, round_: ReviewRound) -> Accepted:
+        """Make `actor` a Reviewer in the Space and give them the invitation's work."""
         self._tenancy.admit(actor, inv.space_id, {Role.REVIEWER}, extend=True)
         groups = {g.id: g.members for g in self._tenancy_repo.groups_in_space(inv.space_id)}
         me = UserParty(actor)

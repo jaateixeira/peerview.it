@@ -106,6 +106,9 @@ class TenancyService:
     # -- organizations --------------------------------------------------------------
 
     def create_organization(self, actor: UserId, name: str, preset_key: str) -> Organization:
+        user = self._users.get(actor)
+        if user is not None and user.is_guest:
+            raise Forbidden  # a guest reviewer joins Previewit first (ADR 0020)
         self._need_verified(actor, Action.CREATE_ORGANIZATION)
         if get_preset(preset_key) is None:
             raise ValueError(f"unknown preset: {preset_key}")

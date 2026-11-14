@@ -75,6 +75,13 @@ class UserRepository(Protocol):
 
     def set_password_hash(self, user_id: UserId, password_hash: str) -> None: ...
 
+    def complete_guest(
+        self, user_id: UserId, email: Email, display_name: str, password_hash: str
+    ) -> bool:
+        """Turn a guest (no password, no identity) into an account with this unverified
+        email. False if the user is not a guest any more. May raise DuplicateEmail."""
+        ...
+
     def mark_email_verified(self, user_id: UserId, email: Email) -> bool:
         """Verify the email only if it is still the account's email. True if now verified."""
         ...
@@ -352,6 +359,12 @@ class RoundRepository(Protocol):
     def invitations_of_round(self, round_id: RoundId) -> list[Invitation]: ...
 
     def count_invitations(self, created_by: UserId) -> int: ...
+
+    def invitations_accepted_by(self, user_id: UserId) -> list[Invitation]: ...
+
+    def claim_invitation(self, invitation_id: str, user_id: UserId) -> bool:
+        """Record who opened an invitation, only if nobody has yet. True if this call did."""
+        ...
 
 
 class ReviewRepository(Protocol):

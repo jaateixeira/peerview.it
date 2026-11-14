@@ -264,6 +264,24 @@ class SqlRoundRepository:
                 ).scalar_one()
             )
 
+    def claim_invitation(self, invitation_id: str, user_id: UserId) -> bool:
+        with self._engine.begin() as conn:
+            result = conn.execute(
+                update(invitations)
+                .where(invitations.c.id == invitation_id, invitations.c.accepted_by.is_(None))
+                .values(accepted_by=user_id)
+            )
+            return result.rowcount == 1
+
+    def invitations_accepted_by(self, user_id: UserId) -> list[Invitation]:
+        with self._engine.connect() as conn:
+            rows = conn.execute(
+                select(invitations)
+                .where(invitations.c.accepted_by == user_id)
+                .order_by(invitations.c.expires_at, invitations.c.id)
+            ).all()
+            return [_invitation(conn, r) for r in rows]
+
 
 def _invitation(conn: Connection, row: Row) -> Invitation:
     work = conn.execute(

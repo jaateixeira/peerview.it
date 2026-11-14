@@ -1,6 +1,6 @@
 # Use cases
 
-Three actors with fixed roles ([ADR 0017](../adr/0017-actors-calls-and-invitations.md)): **Organizer**, **Author**, **Reviewer**. A Member can hold several roles, and a verified email is enough. Author and Reviewer work as **Parties**: a user or a group. An **Auditor** is reserved for later. Use cases are grouped into the three key processes.
+Three actors with fixed roles ([ADR 0017](../adr/0017-actors-calls-and-invitations.md)): **Organizer**, **Author**, **Reviewer**. A Member can hold several roles, and a verified email is enough; an invited reviewer needs only the link ([ADR 0020](../adr/0020-review-without-an-account.md)). Author and Reviewer work as **Parties**: a user or a group. An **Auditor** is reserved for later. Use cases are grouped into the three key processes.
 
 ```mermaid
 flowchart LR
@@ -56,7 +56,7 @@ flowchart LR
 | Send call for authors | M2, MA step C (done) | Public (plain URL) or protected (URL with token); revoke or replace the token |
 | Send call for reviewers | MA step D (done) | One personal invitation per reviewer, bound to an email, carrying the work to review; Previewit can email it with a cover letter |
 | Request a review (quick start) | MQ | One page: file, typed or imported emails (txt, csv, json, xml), send. Makes space, call, round and invitations ([ADR 0018](../adr/0018-request-a-review.md)) |
-| Open invitation, verify email | MA step D (done) | A verified email is the only requirement |
+| Open invitation and review | MA step D (done), ADR 0020 | No account needed: a guest reviewer is invited to join afterwards. The operator can require a verified email instead |
 | Audit the review process | Deferred | Auditor: read-only over reviews, allocation and the edit trail |
 | Submit work or a revision | M2 | Text and PDF; individual or group |
 | Share a link for review | M2 | Minimal sign-up; counts toward the 100-share free limit |

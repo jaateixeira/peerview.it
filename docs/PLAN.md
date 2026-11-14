@@ -108,7 +108,7 @@ The three roles (organizer, author, reviewer) are fixed in the core (ADR 0017); 
 
 ### 2.6 Actors, calls and key processes (ADR 0017)
 
-Three actors, one fixed role each in a Space. A Member can hold several, and only a verified email is needed to take part, wherever the person works.
+Three actors, one fixed role each in a Space. A Member can hold several, and only a verified email is needed to take part, wherever the person works. An invited reviewer needs only the link and is invited to join after reviewing (ADR 0020).
 
 | Actor | Does | Receives |
 |---|---|---|

@@ -3,7 +3,7 @@ from collections.abc import Mapping
 
 from fastapi.testclient import TestClient
 
-from previewit.domain.policy import Action, VerificationPolicy
+from previewit.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
 from tests.integration.web_fakes import Harness, csrf_token, make_harness
 
 PASSWORD = "correct horse battery"
@@ -31,8 +31,8 @@ def post(
 class Course:
     """A teacher with an organization and a course, plus a joined student."""
 
-    def __init__(self) -> None:
-        self.h: Harness = make_harness()
+    def __init__(self, policy: VerificationPolicy = DEFAULT_POLICY) -> None:
+        self.h: Harness = make_harness(policy=policy)
         self.teacher = self.h.client
         signup(self.teacher, "tina@x.fi", "Tina Teacher")
         r = post(self.teacher, "/orgs", {"name": "Jyväskylä School", "preset": "education"})

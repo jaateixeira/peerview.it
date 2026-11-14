@@ -132,6 +132,35 @@ class SqlUserRepository:
                 update(users).where(users.c.id == user_id).values(password_hash=password_hash)
             )
 
+    def complete_guest(
+        self, user_id: UserId, email: Email, display_name: str, password_hash: str
+    ) -> bool:
+        no_identity = (
+            ~select(external_identities.c.user_id)
+            .where(external_identities.c.user_id == user_id)
+            .exists()
+        )
+        try:
+            with self._engine.begin() as conn:
+                result = conn.execute(
+                    update(users)
+                    .where(
+                        users.c.id == user_id,
+                        users.c.password_hash.is_(None),
+                        users.c.email.is_(None),
+                        no_identity,
+                    )
+                    .values(
+                        email=email.value,
+                        email_verified=False,
+                        display_name=display_name,
+                        password_hash=password_hash,
+                    )
+                )
+                return result.rowcount == 1
+        except IntegrityError:
+            raise DuplicateEmail from None
+
     # -- helpers -------------------------------------------------------------
 
     @staticmethod
