@@ -1,6 +1,6 @@
 # Year 1 plan (Nov 2026 – Oct 2027)
 
-**Goal for month 12:** teachers outside the founder's own courses run reviews on `peereview.it` unaided, and the first organisers pay.
+**Goal for month 12:** teachers outside the founder's own courses run reviews on `peerview.it` unaided, and the first organisers pay.
 Starting point: milestone M0 done (see `docs/PLAN.md`).
 
 **Constraints:** solo founder, 2 days a week (about 90 working days in the year), free-time side activity, no external funding.

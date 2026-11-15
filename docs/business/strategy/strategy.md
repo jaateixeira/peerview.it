@@ -1,7 +1,7 @@
 # Strategy
 
 **Mission:** make peer review easy.
-**Vision:** the default place to send anything for peer review: `peereview.it`.
+**Vision:** the default place to send anything for peer review: `peerview.it`.
 
 ## Strategic choices
 
@@ -41,7 +41,7 @@ Every review request exposes new people to the product.
 
 ```mermaid
 flowchart LR
-    A[Author shares<br/>peereview.it link] --> B[Reviewers open link<br/>review with minimal sign-up]
+    A[Author shares<br/>peerview.it link] --> B[Reviewers open link<br/>review with minimal sign-up]
     B --> C[Good experience]
     C --> D[Reviewer becomes<br/>requester]
     D --> A

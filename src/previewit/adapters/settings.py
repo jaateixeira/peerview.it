@@ -65,7 +65,7 @@ class Settings:
 
     @property
     def host(self) -> str:
-        """The site address as people type it, for example ``peereview.it``."""
+        """The site address as people type it, for example ``peerview.it``."""
         return urlsplit(self.base_url).netloc
 
     @property

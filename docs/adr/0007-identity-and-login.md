@@ -21,7 +21,7 @@ Hosted-first (ADR 0005) means sign-up to first review must be fast, and the Educ
 
 ## Consequences
 - Contributors can develop without any provider: only the password flow is on by default. Providers switch on from environment variables (`docs/auth/login-setup.md`).
-- HAKA needs registration of the service in the Haka Resource Registry (CSC approval), so it could not go live before the domain existed (`peereview.it` since ADR 0021). Google and Apple need developer accounts (Apple is paid) and https.
+- HAKA needs registration of the service in the Haka Resource Registry (CSC approval), so it could not go live before the domain existed (`peerview.it` since ADR 0021). Google and Apple need developer accounts (Apple is paid) and https.
 - Real providers are tested with fakes, claim-mapping unit tests, a signed-JWT check for Apple and a local SAML IdP round trip for HAKA. Nothing is verified against live Google, Apple or Haka yet.
 - Known accepted risk: sign-up reveals whether an email is taken. Rate limiting arrives with the hosted-service work (M8).
 - Sessions are stateless: logout clears the cookie but cannot revoke a stolen one before expiry. Revisit with server-side sessions if needed.

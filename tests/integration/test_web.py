@@ -56,7 +56,7 @@ def test_only_the_glossary_is_served_under_docs_internal():
 
 
 def test_every_page_names_the_site_address_in_the_footer():
-    # The product is Previewit; the address (peereview.it when hosted) is shown beside it.
+    # The product is Previewit; the address (peerview.it when hosted) is shown beside it.
     pages = make_harness(base_url="https://peereview.example").client
     footer = re.search(r"<footer.*?</footer>", pages.get("/").text, re.S)
     assert footer and "peereview.example" in footer.group(0)
