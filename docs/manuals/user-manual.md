@@ -25,7 +25,7 @@ Previewit uses neutral words. The Education preset shows the course words.
 
 ## 3. Three people, three processes
 
-Everything in Previewit is done by one of three people. You can be more than one. All you need is a verified email address, wherever you work or study.
+Everything in Previewit is done by one of three people. You can be more than one. All you need is a verified email address, wherever you work or study. A reviewer needs even less: the invitation link.
 
 | Process | Who | What happens | Milestone |
 |---|---|---|---|
@@ -43,7 +43,7 @@ Press **Request a review** on the home page. Sign in with Google, Apple or your 
 
 1. **The work.** Choose a PDF or a text file (`.txt`, `.md`), or paste the text. The title comes from the file name if you leave it empty. Other kinds of file are not reviewed yet: save them as a PDF.
 2. **The reviewers.** Type or paste email addresses, separated by commas, spaces or new lines. Previewit checks them as you type and points at any that do not look right. Or import a list from a `.txt`, `.csv`, `.json` or `.xml` file: Previewit picks out the addresses. **See a sample** shows each format and lets you download it.
-3. **Send it.** Add a few words for the reviewers and a due date if you like (two weeks otherwise). Leave **Email the invitations for me** ticked and Previewit mails each person their own link in your name (confirm your own email address first). Untick it and you get the links to send yourself.
+3. **Send it.** Add a few words for the reviewers and a due date if you like (two weeks otherwise). Reviews are due at 16:00 in your time zone unless you choose another time. Leave **Email the invitations for me** ticked and Previewit mails each person their own link in your name (confirm your own email address first). Untick it and you get the links to send yourself.
 
 Previewit makes the review space, the call, the round and one personal invitation per reviewer. The last page lists each reviewer with their link, shown once, and takes you to the round to follow progress.
 

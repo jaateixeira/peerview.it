@@ -48,7 +48,9 @@ sequenceDiagram
     O->>P: Release feedback, open the next round
 ```
 
-## Process 3: reviewing by invitation (M5, step D done)
+## Process 3: reviewing by invitation (M5, step D done, ADR 0020)
+
+A reviewer needs no account. Previewit makes a guest reviewer for the invitation and invites them to join after the review.
 
 ```mermaid
 sequenceDiagram
@@ -57,16 +59,26 @@ sequenceDiagram
 
     R->>P: Open invitation link
     P->>P: Check token (revoked, expired, closed round or wrong: refuse)
-    P-->>R: Sign up or log in with the invited email, confirm it
-    R->>P: Open the link again, press Start reviewing
-    P->>P: Check the verified email is the invited one
+    alt The invited address has an account
+        P-->>R: Log in with it, then Start reviewing
+    else No account (default)
+        R->>P: Optional name, Start reviewing
+        P->>P: Claim the invitation once, make a guest reviewer, start a session
+    end
     P->>P: Give the reviewer role, create the review tasks, drop the token from the URL
     P-->>R: My reviews: the allocated work
     loop For each task
         R->>P: Annotate and score (autosave)
     end
     R->>P: Submit review
+    opt Guest reviewer
+        P-->>R: Thanks the reviewer, offers Join Previewit
+        R->>P: Choose a password (email is the invited address)
+        P-)R: Email: confirm the address
+    end
 ```
+
+If the operator lists `review` or `join` in `require_verified_email_for`, there are no guests: the reviewer signs up or logs in with the invited address and confirms it first (ADR 0017).
 
 ## Review by link (M2, M5, M6)
 

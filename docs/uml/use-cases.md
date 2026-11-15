@@ -26,7 +26,7 @@ flowchart LR
         UC12("Launch from a course, return grades")
         UC13("Send call for authors: public or token link")
         UC14("Send call for reviewers: personal invitations")
-        UC15("Open invitation, verify email")
+        UC15("Open invitation, review, join afterwards")
         UC16("Audit the review process")
         UC17("Request a review: file and emails in one step")
     end
@@ -45,7 +45,7 @@ flowchart LR
 |---|---|---|
 | **1. Organizing a call for authors** | Organizer, Author | Create space, create call, send call for authors, submit work or a revision |
 | **2. Organizing peer review of the items** | Organizer | Create rubric, configure round, allocate, send call for reviewers, follow progress, release feedback, export scores |
-| **3. Reviewing work by invitation** | Reviewer, Organizer | Send call for reviewers, open invitation and verify email, review, read feedback (if also an author) |
+| **3. Reviewing work by invitation** | Reviewer, Organizer | Send call for reviewers, open invitation (no account needed), review, join afterwards, read feedback (if also an author) |
 
 ## Use cases
 
