@@ -2,9 +2,9 @@
 
 **Read first.** Self-hosting is for experts and is unsupported ([ADR 0005](../adr/0005-hosted-first-debian-only.md)). The easy path is the hosted site. There is no installer, no container image and no support for other systems.
 
-**Status.** The application runs with PostgreSQL, a configuration file, sign-in and outgoing email. Uploaded files are stored in the database.
+**Status.** The application has sign-in (email and password, Google, Apple, HAKA), email verification, organizations, spaces, calls, submissions (text and PDF), rounds, reviews and invitations. Outgoing mail, the database and the cache are configurable. Quotas, payment and LTI are not built yet.
 
-**Tested (2026-11-15):** the configuration file, the migration command and the start command, against PostgreSQL 16 on Python 3.13. **Not tested:** the systemd unit, the nginx configuration and a real Debian 13 host; treat them as an outline to adapt.
+**Tested (2026-11-15):** the test suite on Python 3.13 with SQLite and PostgreSQL 16; the configuration file, the migration command and the start command against PostgreSQL 16. **Not tested:** the systemd unit, the nginx configuration and a real Debian 13 host (treat them as an outline to adapt), live Google, Apple, HAKA or SMTP, Valkey itself.
 
 ## 1. Requirements
 
@@ -14,6 +14,7 @@
 | Python | Debian's `python3` (project needs 3.12 or newer) |
 | Tools | `git`, `curl`, `uv` |
 | Database | PostgreSQL. SQLite is for development only. |
+| Cache | Valkey (recommended, optional): keeps the signed-in user close at hand. Required if you run more than one worker. |
 | Front | nginx with TLS, or a tunnel that ends TLS and forwards to `127.0.0.1:8000` |
 | Email | An SMTP relay. The application does not start on an https address without one. |
 | Hardware | Provisional: 4 CPU cores, 8 GB RAM, SSD storage. No load tests exist yet; figures will be set in M7. |
@@ -29,31 +30,35 @@ flowchart LR
         N["nginx or tunnel: TLS"]
         A["previewit: uvicorn under systemd, 127.0.0.1:8000"]
         P[("PostgreSQL: data and uploaded files")]
+        V[("Valkey: cached users, 60 s")]
     end
     SMTP(["SMTP relay"])
+    IDP(["Google, Apple, HAKA"])
     U -- HTTPS --> N
     M -. LTI launch .-> N
     N -- HTTP --> A
     A --> P
+    A -. optional .-> V
     A --> SMTP
+    A --> IDP
 ```
 
-Solid lines exist today; dotted lines are planned.
+Valkey is a copy, never the source of truth. If it is down the site is slower, not broken.
 
 ## 3. Install
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y python3 git curl ca-certificates postgresql
+sudo apt-get install -y python3 git curl ca-certificates postgresql valkey
 sudo adduser --system --group --home /opt/previewit previewit
 sudo -u previewit -H sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
 sudo -u previewit -H git clone https://github.com/jaateixeira/prreview.it /opt/previewit/app
 cd /opt/previewit/app
 sudo -u previewit -H env UV_PYTHON_PREFERENCE=only-system \
-  /opt/previewit/.local/bin/uv sync --frozen --no-dev --extra postgres
+  /opt/previewit/.local/bin/uv sync --frozen --no-dev --extra postgres --extra valkey
 ```
 
-`--frozen` installs exactly what `uv.lock` pins; `--no-dev` leaves out test tools. Add `--extra saml` for HAKA login and `--extra valkey` for more than one worker.
+`--frozen` installs exactly what `uv.lock` pins; `--no-dev` leaves out test tools. Add `--extra saml` for HAKA (needs `xmlsec1` from apt). If `apt` has no `valkey` package on your release, use another Redis-compatible server, or leave the cache out and run one worker. Bind it to `127.0.0.1` and set a password if anything else can reach it.
 
 ## 4. Database
 
@@ -64,6 +69,8 @@ sudo -u postgres createdb --owner previewit previewit
 
 ## 5. Configure
 
+Settings come from a TOML file and from `PREVIEWIT_*` environment variables; a variable overrides the file. The file is read from `PREVIEWIT_CONFIG`, else `./previewit.toml`, else `/etc/previewit/previewit.toml`.
+
 ```bash
 sudo install -d -o root -g previewit -m 750 /etc/previewit
 sudo install -o root -g previewit -m 640 previewit.example.toml /etc/previewit/previewit.toml
@@ -71,7 +78,7 @@ openssl rand -hex 32 | sudo install -o root -g previewit -m 640 /dev/stdin /etc/
 sudoedit /etc/previewit/previewit.toml
 ```
 
-Set at least these. The file explains the rest; login providers are in [`docs/auth/login-setup.md`](../auth/login-setup.md).
+Set at least these:
 
 ```toml
 [server]
@@ -88,9 +95,18 @@ smtp_user = "…"
 smtp_password = "…"
 smtp_security = "starttls"                 # or "ssl" for port 465
 from = "Previewit <no-reply@review.example.org>"
+
+[cache]
+url = "valkey://127.0.0.1:6379/0"
 ```
 
-The file holds secrets: keep it readable by `root` and the `previewit` group only. Forms are checked against `base_url`, so the site must be reached under that one address; redirect any other name (such as `www.`) to it.
+| Other section | What it sets |
+|---|---|
+| `[logging]` | `level`: `TRACE`, `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+| `[policy]` | `require_verified_email_for`: which actions need a verified email. Default: none, so invited reviewers can review without an account and join afterwards (ADR 0020). Listing `review` or `join` turns that off |
+| `[login.google]`, `[login.apple]`, `[login.haka]` | providers, each on when configured ([`docs/auth/login-setup.md`](../auth/login-setup.md)) |
+
+The file holds secrets: keep it readable by `root` and the `previewit` group only (the server warns otherwise). Typos in keys, sections or action names stop the server at start and name the setting. Forms are checked against `base_url`, so the site must be reached under that one address; redirect any other name (such as `www.`) to it.
 
 ## 6. Run
 
@@ -99,14 +115,14 @@ The file holds secrets: keep it readable by `root` and the `previewit` group onl
 ```ini
 [Unit]
 Description=Previewit
-After=network.target postgresql.service
+After=network.target postgresql.service valkey.service
 
 [Service]
 User=previewit
 Group=previewit
 WorkingDirectory=/opt/previewit/app
 ExecStartPre=/opt/previewit/app/.venv/bin/python -c "import os; from previewit.adapters.settings import load_settings; from previewit.adapters.persistence.migrate import upgrade; upgrade(load_settings(os.environ).database_url)"
-ExecStart=/opt/previewit/app/.venv/bin/uvicorn previewit.bootstrap:create_app --factory --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+ExecStart=/opt/previewit/app/.venv/bin/uvicorn previewit.bootstrap:create_app --factory --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips 127.0.0.1
 Restart=on-failure
 NoNewPrivileges=true
 PrivateTmp=true
@@ -116,7 +132,7 @@ ProtectSystem=full
 WantedBy=multi-user.target
 ```
 
-`ExecStartPre` brings the database to the latest schema before each start; PostgreSQL is never migrated by the application itself. The unit runs one worker. For more, add `--workers N` and configure `[cache]` with Valkey, or each worker keeps its own cache.
+`ExecStartPre` brings the database to the latest schema before each start; PostgreSQL is never migrated by the application itself. Two workers need the `[cache]` url; without Valkey, remove `--workers 2`, or each worker keeps its own cache and the server warns at start.
 
 ```bash
 sudo systemctl daemon-reload
@@ -124,6 +140,8 @@ sudo systemctl enable --now previewit
 curl -s http://127.0.0.1:8000/healthz    # prints: ok
 journalctl -u previewit -n 50            # if it does not
 ```
+
+**Logs and console.** On start the service prints a summary (address, database kind, cache, mail, login methods, artifact types, policy; never a secret). Logs go to stderr, so `journalctl -u previewit -f` shows them. For debugging set `[logging] level = "DEBUG"`, or `TRACE` to see every cache hit and miss, and restart.
 
 ## 7. Front: TLS and reverse proxy
 
@@ -133,7 +151,7 @@ journalctl -u previewit -n 50            # if it does not
 server {
     listen 80;
     server_name review.example.org;
-    client_max_body_size 12m;
+    client_max_body_size 12m;     # PDF submissions: 10 MB file plus form fields
 
     location / {
         proxy_pass http://127.0.0.1:8000;
@@ -149,7 +167,7 @@ sudo apt-get install -y nginx certbot python3-certbot-nginx
 sudo certbot --nginx -d review.example.org
 ```
 
-The application refuses uploads above 12 MB, so the proxy needs no larger limit.
+The application also refuses bodies announcing more than 12 MB, but only the proxy can stop a request that does not announce its size, so keep `client_max_body_size`.
 
 **Tunnel.** A tunnel that ends TLS at its provider (for example `cloudflared`) can replace nginx: point its public hostname at `http://127.0.0.1:8000`. It must run on the same host, or `--forwarded-allow-ips` must name the address it connects from.
 
@@ -159,7 +177,7 @@ Previewit sends verification mails and invitations over SMTP only. Use a relay t
 
 ## 9. Backup
 
-Everything, uploaded files included, is in PostgreSQL. Keep the configuration and the secret key with the dumps: with a new key, everyone is signed out.
+Submitted text and PDFs are stored **in PostgreSQL** (table `revisions`), so a database backup is the whole backup: dump regularly and test a restore. Valkey needs no backup; it only holds copies. Keep the configuration and the secret key with the dumps: with a new key, everyone is signed out.
 
 ```bash
 sudo -u postgres pg_dump --format=custom previewit > previewit-$(date +%F).dump
@@ -172,7 +190,7 @@ sudo -u postgres pg_restore --clean --dbname previewit previewit-2026-11-15.dump
 cd /opt/previewit/app
 sudo -u previewit -H git pull --ff-only
 sudo -u previewit -H env UV_PYTHON_PREFERENCE=only-system \
-  /opt/previewit/.local/bin/uv sync --frozen --no-dev --extra postgres
+  /opt/previewit/.local/bin/uv sync --frozen --no-dev --extra postgres --extra valkey
 sudo systemctl restart previewit         # migrates, then starts
 ```
 
@@ -183,7 +201,7 @@ Take a dump first. Read the release notes; the plugin API is unstable until vers
 | Topic | Milestone |
 |---|---|
 | Monitoring, logs, performance budgets | M7 |
-| Quotas and payment (hosted mode only) | M8 |
+| Quotas and payment (hosted mode only), separate file storage | M8 |
 | LTI 1.3 registration in Moodle | M9 |
 
 ## 12. Licence duties
