@@ -72,9 +72,9 @@ sudo -u postgres createdb --owner previewit previewit
 Settings come from a TOML file and from `PREVIEWIT_*` environment variables; a variable overrides the file. The file is read from `PREVIEWIT_CONFIG`, else `./previewit.toml`, else `/etc/previewit/previewit.toml`.
 
 ```bash
-sudo install -d -o root -g previewit -m 750 /etc/previewit
-sudo install -o root -g previewit -m 640 previewit.example.toml /etc/previewit/previewit.toml
-openssl rand -hex 32 | sudo install -o root -g previewit -m 640 /dev/stdin /etc/previewit/secret.key
+sudo install -d -o previewit -g previewit -m 700 /etc/previewit
+sudo install -o previewit -g previewit -m 600 previewit.example.toml /etc/previewit/previewit.toml
+openssl rand -hex 32 | sudo install -o previewit -g previewit -m 600 /dev/stdin /etc/previewit/secret.key
 sudoedit /etc/previewit/previewit.toml
 ```
 
@@ -84,6 +84,7 @@ Set at least these:
 [server]
 base_url = "https://review.example.org"   # exactly the address people type; no trailing slash
 secret_key_file = "secret.key"
+# aliases = ["https://www.review.example.org"]   # other names of this site (ADR 0021)
 
 [database]
 url = "postgresql+psycopg://previewit:PASSWORD@localhost/previewit"
@@ -106,7 +107,7 @@ url = "valkey://127.0.0.1:6379/0"
 | `[policy]` | `require_verified_email_for`: which actions need a verified email. Default: none, so invited reviewers can review without an account and join afterwards (ADR 0020). Listing `review` or `join` turns that off |
 | `[login.google]`, `[login.apple]`, `[login.haka]` | providers, each on when configured ([`docs/auth/login-setup.md`](../auth/login-setup.md)) |
 
-The file holds secrets: keep it readable by `root` and the `previewit` group only (the server warns otherwise). Typos in keys, sections or action names stop the server at start and name the setting. Forms are checked against `base_url`, so the site must be reached under that one address; redirect any other name (such as `www.`) to it.
+The file holds secrets: keep it readable by the `previewit` account only (the server warns if group or others can read it). Typos in keys, sections or action names stop the server at start and name the setting. Forms are checked against `base_url`, so the site lives at that one address. List every other name that reaches the server under `aliases`: visitors who arrive there are sent to the same page at `base_url`. Each name needs DNS, a certificate and a place in the proxy (`server_name`) or tunnel.
 
 ## 6. Run
 
