@@ -26,7 +26,7 @@ def test_the_file_sets_everything(tmp_path: Path):
         tmp_path,
         """
         [server]
-        base_url = "https://prreview.example"
+        base_url = "https://peereview.example"
         secret_key = "s3cret"
 
         [database]
@@ -36,14 +36,14 @@ def test_the_file_sets_everything(tmp_path: Path):
         smtp_host = "smtp.example"
         smtp_port = 465
         smtp_security = "ssl"
-        from = "Previewit <no-reply@prreview.example>"
+        from = "Previewit <no-reply@peereview.example>"
 
         [login.google]
         client_id = "gid"
         client_secret = "gsecret"
 
         [login.haka]
-        entity_id = "https://prreview.example/saml/sp"
+        entity_id = "https://peereview.example/saml/sp"
         discovery_url = "https://haka.example/ds"
 
         [policy]
@@ -51,12 +51,12 @@ def test_the_file_sets_everything(tmp_path: Path):
         """,
     )
     s = load_settings({"PREVIEWIT_CONFIG": str(path)})
-    assert s.base_url == "https://prreview.example" and s.secret_key == "s3cret"
+    assert s.base_url == "https://peereview.example" and s.secret_key == "s3cret"
     assert s.database_url.startswith("postgresql+psycopg://")
     assert (s.smtp_host, s.smtp_port, s.smtp_security) == ("smtp.example", 465, "ssl")
-    assert s.mail_from == "Previewit <no-reply@prreview.example>"
+    assert s.mail_from == "Previewit <no-reply@peereview.example>"
     assert (s.google_client_id, s.google_client_secret) == ("gid", "gsecret")
-    assert s.haka_entity_id == "https://prreview.example/saml/sp"
+    assert s.haka_entity_id == "https://peereview.example/saml/sp"
     assert s.haka_discovery_url == "https://haka.example/ds"
     assert s.verification_policy.required_for == {Action.REVIEW, Action.SUBMIT}
 
@@ -191,3 +191,55 @@ def test_a_cache_url_may_hold_a_password_so_an_open_file_is_warned_about(tmp_pat
     path = write(tmp_path, '[cache]\nurl = "valkey://:pw@localhost/0"\n', mode=0o644)
     load_settings({"PREVIEWIT_CONFIG": str(path)})
     assert "chmod 600" in logged.text
+
+
+# -- other addresses of the same site (ADR 0021) -------------------------------------------
+
+
+def test_other_addresses_of_the_site_can_be_listed(tmp_path: Path):
+    path = write(
+        tmp_path,
+        """
+        [server]
+        base_url = "https://peerview.example"
+        secret_key = "s"
+        aliases = ["https://Peereview.example/", "https://www.peerview.example"]
+        """,
+    )
+    s = load_settings({"PREVIEWIT_CONFIG": str(path), "PREVIEWIT_SMTP_HOST": "m"}, search=[])
+    assert s.aliases == ("https://peereview.example", "https://www.peerview.example")
+    assert s.alias_hosts == frozenset({"peereview.example", "www.peerview.example"})
+    assert load_settings({}, search=[]).aliases == ()
+
+
+def test_the_environment_lists_aliases_with_commas():
+    s = load_settings({"PREVIEWIT_ALIASES": "http://a.example:8000, http://b.example"}, search=[])
+    assert s.aliases == ("http://a.example:8000", "http://b.example")
+    assert s.alias_hosts == frozenset({"a.example:8000", "b.example"})
+
+
+@pytest.mark.parametrize(
+    "aliases, problem",
+    [
+        ('"https://a.example"', "must be a list"),
+        ("[1]", "must be a list"),
+        ('["a.example"]', "http:// or https://"),
+        ('["ftp://a.example"]', "http:// or https://"),
+        ('["https://a.example/path"]', "only the address"),
+        ('["https://a.example?x=1"]', "only the address"),
+        ('["https://peerview.example"]', "same as base_url"),
+        ('["https://"]', "http:// or https://"),
+    ],
+)
+def test_a_wrong_alias_stops_the_start_and_says_why(tmp_path: Path, aliases: str, problem: str):
+    path = write(
+        tmp_path,
+        f"""
+        [server]
+        base_url = "https://peerview.example"
+        secret_key = "s"
+        aliases = {aliases}
+        """,
+    )
+    with pytest.raises(ConfigError, match=problem):
+        load_settings({"PREVIEWIT_CONFIG": str(path)}, search=[])

@@ -37,14 +37,14 @@ class FakeSmtp:
 def test_smtp_mailer_starttls_login_and_message(monkeypatch: pytest.MonkeyPatch):
     FakeSmtp.instances.clear()
     monkeypatch.setattr(smtplib, "SMTP", FakeSmtp)
-    mailer = SmtpMailer("smtp.example", 587, "user", "pw", "Previewit <no-reply@prreview.example>")
+    mailer = SmtpMailer("smtp.example", 587, "user", "pw", "Previewit <no-reply@peereview.example>")
     mailer.send("ann@x.fi", "Hello", "Body")
     smtp = FakeSmtp.instances[0]
     assert smtp.message is not None
     assert smtp.calls == ["starttls", "login:user"]
     assert smtp.message["To"] == "ann@x.fi"
     assert smtp.message["Subject"] == "Hello"
-    assert smtp.message["From"] == "Previewit <no-reply@prreview.example>"
+    assert smtp.message["From"] == "Previewit <no-reply@peereview.example>"
     assert smtp.message["Auto-Submitted"] == "auto-generated"
     assert smtp.message.get_content().strip() == "Body"
 

@@ -44,6 +44,8 @@ def base_url():
     bootstrap.build_mailer = lambda _settings: OUTBOX  # type: ignore[assignment]
     # The app checks the Origin header of form posts against its own base URL.
     os.environ["PREVIEWIT_BASE_URL"] = f"http://127.0.0.1:{port}"
+    # The same server under a second name, to show that an alias leads to the main address.
+    os.environ["PREVIEWIT_ALIASES"] = f"http://localhost:{port}"
     server = uvicorn.Server(
         uvicorn.Config(create_app(), host="127.0.0.1", port=port, log_level="warning")
     )

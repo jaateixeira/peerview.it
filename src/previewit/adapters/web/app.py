@@ -70,9 +70,11 @@ def build_app(
     app = FastAPI(title="Previewit", docs_url=None, redoc_url=None)
     templates = Jinja2Templates(directory=HERE / "templates")
     templates.env.globals["source_url"] = SOURCE_URL
+    templates.env.globals["site_host"] = settings.host
     local_time.install(templates.env)
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
     codec = SessionCodec(settings.secret_key)
+    alias_hosts = settings.alias_hosts
 
     # Short-lived state for OAuth/SAML round trips only. Apple and SAML return through a
     # cross-site POST, so in https deployments the cookie must be SameSite=None; Secure.
@@ -101,6 +103,24 @@ def build_app(
         if request.url.path.startswith(("/s/", "/join/", "/i/")):  # the secret is in the address
             response.headers["Referrer-Policy"] = "same-origin"  # never to other sites
         return response
+
+    @app.middleware("http")
+    async def one_address(request: Request, call_next):
+        """A request that came in under an alias is sent to the same page at the main address.
+
+        Added last so it runs first: nothing is looked up or processed under the other name,
+        and forms, cookies and login callbacks only ever see one origin.
+        """
+        if request.headers.get("host", "").lower() in alias_hosts:
+            raw = request.scope.get("raw_path")
+            path = raw.decode("latin-1") if raw else quote(request.url.path)
+            query = f"?{request.url.query}" if request.url.query else ""
+            return RedirectResponse(
+                f"{settings.origin}{path}{query}",
+                status_code=308,
+                headers={"Referrer-Policy": "same-origin"},  # the path may hold a token
+            )
+        return await call_next(request)
 
     app.include_router(
         build_auth_router(

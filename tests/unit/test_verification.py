@@ -52,7 +52,7 @@ def service(users, outbox, clock) -> VerificationService:
         users,
         InMemoryEmailTokenRepository(),
         outbox,
-        "https://prreview.example",
+        "https://peereview.example",
         clock,
         new_token=lambda: f"tok{next(counter)}",
     )
@@ -67,7 +67,7 @@ def _user(users: InMemoryUserRepository) -> User:
 def test_send_mails_a_link_and_confirm_verifies(service, users, outbox):
     assert service.send(_user(users)) is SendResult.SENT
     to, _, body = outbox.sent[0]
-    assert to == "a@x.fi" and "https://prreview.example/verify?token=tok1" in body
+    assert to == "a@x.fi" and "https://peereview.example/verify?token=tok1" in body
     confirmed = service.confirm("tok1")
     assert confirmed is not None and confirmed.email_verified
 

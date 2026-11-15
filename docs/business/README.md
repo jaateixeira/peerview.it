@@ -2,7 +2,7 @@
 
 **Mission:** make peer review easy.
 **Product:** open-source (AGPL-3.0) peer-review platform. Any artifact via plugins (text, PDF, code, 3D, video, patents…). Any party: individuals, groups, organisations, networks of organisations.
-**Entry point:** anyone sends something for review with a link at `peereview.it`.
+**Entry point:** anyone sends something for review with a link at `peerview.it` ([ADR 0021](../adr/0021-site-addresses.md)).
 **Beachhead:** education, integrated with Moodle. **Ambition:** born global.
 
 | Folder | Doc | Content |
@@ -24,7 +24,7 @@ Technical plan lives in `docs/PLAN.md`.
 | Pricing | Free tier: under 50 MB of storage and up to 100 shares per user. Students and reviewers never pay. The organiser of the review pays. |
 | Deployment | Hosted site is the easy path and free to start. Self-hosting stays open (AGPL) but is expert-only by design: Debian Linux only, strong technical skills and good hardware required. |
 | First pilot | Founder's own courses |
-| Domain | To be registered as soon as possible |
+| Domain | `peerview.it` is the main address; `peereview.it` leads to it. Both registered November 2026 ([ADR 0021](../adr/0021-site-addresses.md)) |
 
 ## What this means for the code roadmap
 
@@ -39,7 +39,6 @@ These business choices set the priorities in `docs/PLAN.md`:
 
 ## Open questions
 
-1. Exact name and domain before registering: `peereview.it` (used in these docs), `prreview.it` (this repository), `peerreview.it` or `previewit.*`?
-2. Is the 50 MB limit per organiser account (assumed here) or per review call?
-3. What counts as a share, and is 100 a lifetime or a monthly limit? Assumed: one artifact sent for review by link, lifetime, counted against the user who starts it; submissions inside an organiser's call count against the organiser.
-4. Price above the free limits: the tiers in `strategy.md` are placeholders.
+1. Is the 50 MB limit per organiser account (assumed here) or per review call?
+2. What counts as a share, and is 100 a lifetime or a monthly limit? Assumed: one artifact sent for review by link, lifetime, counted against the user who starts it; submissions inside an organiser's call count against the organiser.
+3. Price above the free limits: the tiers in `strategy.md` are placeholders.
