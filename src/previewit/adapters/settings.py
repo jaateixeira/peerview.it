@@ -29,6 +29,7 @@ class ConfigError(Exception):
 class Settings:
     secret_key: str
     base_url: str = "http://localhost:8000"
+    aliases: tuple[str, ...] = ()  # other addresses of this site; they redirect to base_url
     database_url: str = "sqlite:///previewit.db"
     smtp_host: str | None = None
     smtp_port: int = 587
@@ -67,6 +68,11 @@ class Settings:
         """The site address as people type it, for example ``peereview.it``."""
         return urlsplit(self.base_url).netloc
 
+    @property
+    def alias_hosts(self) -> frozenset[str]:
+        """Host names (with a port, if any) that lead to this site but are not its address."""
+        return frozenset(urlsplit(alias).netloc for alias in self.aliases)
+
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> Settings:
         base_url = env.get("PREVIEWIT_BASE_URL", cls.base_url)
@@ -78,6 +84,7 @@ class Settings:
         return cls(
             secret_key=secret,
             base_url=base_url,
+            aliases=_aliases(env, base_url),
             database_url=env.get("PREVIEWIT_DATABASE_URL", cls.database_url),
             smtp_host=_get(env, "SMTP_HOST"),
             smtp_port=int(_get(env, "SMTP_PORT") or cls.smtp_port),
@@ -107,6 +114,32 @@ class Settings:
 
 def _get(env: Mapping[str, str], name: str) -> str | None:
     return env.get(f"PREVIEWIT_{name}") or None
+
+
+def _aliases(env: Mapping[str, str], base_url: str) -> tuple[str, ...]:
+    """Other addresses of the site, as origins: scheme and host, lower-case, no path."""
+    main = _origin(base_url)
+    found: list[str] = []
+    for entry in (env.get("PREVIEWIT_ALIASES") or "").split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        parts = urlsplit(entry)
+        if parts.scheme not in ("http", "https") or not parts.netloc:
+            raise ConfigError(f"alias {entry!r} must start with http:// or https://")
+        if parts.path not in ("", "/") or parts.query or parts.fragment:
+            raise ConfigError(f"alias {entry!r} must be only the address, without a path")
+        origin = _origin(entry)
+        if origin == main:
+            raise ConfigError(f"alias {entry!r} is the same as base_url")
+        if origin not in found:
+            found.append(origin)
+    return tuple(found)
+
+
+def _origin(url: str) -> str:
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc.lower()}"
 
 
 def _apple_key(env: Mapping[str, str]) -> str | None:
@@ -177,6 +210,7 @@ _SECRET_KEYS = {
     "CACHE_URL",  # may carry a password
 }
 _POLICY_KEY = ("policy", "require_verified_email_for")
+_ALIASES_KEY = ("server", "aliases")
 _INT_KEYS = {"SMTP_PORT"}
 
 
@@ -219,6 +253,10 @@ def _read_file(path: Path) -> dict[str, str]:
             except ValueError as e:
                 raise ConfigError(f"{path}: {where}: {e}") from None
             out["PREVIEWIT_REQUIRE_VERIFIED_EMAIL_FOR"] = ",".join(value)
+        elif (section, key) == _ALIASES_KEY:
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                raise ConfigError(f"{path}: {where} must be a list of addresses")
+            out["PREVIEWIT_ALIASES"] = ",".join(value)
         elif (section, key) in _SECRET_FILES:
             target = _SECRET_FILES[(section, key)]
             if target in flat:
@@ -251,7 +289,7 @@ def _flatten(node: Mapping[str, Any], prefix: str, out: dict[tuple[str, str], An
 
 
 def _all_sections() -> set[tuple[str, str]]:
-    return set(_KEYS) | set(_SECRET_FILES) | {_POLICY_KEY}
+    return set(_KEYS) | set(_SECRET_FILES) | {_POLICY_KEY, _ALIASES_KEY}
 
 
 def _scalar(path: Path, where: str, value: Any, name: str, base: Path) -> str:

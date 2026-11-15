@@ -45,6 +45,7 @@ def test_the_startup_panel_shows_the_setup_but_no_secrets():
         smtp_password="smtppassword",
         cache_url="valkey://:cachepassword@cache/0",
         verification_policy=VerificationPolicy(frozenset({Action.REVIEW})),
+        aliases=("https://peerview.example",),
     )
     panel = startup_panel(
         settings, version="1.2.3", cache_kind="Valkey", mail_mode="SMTP",
@@ -53,7 +54,10 @@ def test_the_startup_panel_shows_the_setup_but_no_secrets():
     console = Console(record=True, width=100, force_terminal=False)
     console.print(panel)
     out = console.export_text()
-    for expected in ("Previewit 1.2.3", "peereview.example", "postgresql", "Valkey", "review"):
+    for expected in (
+        "Previewit 1.2.3", "peereview.example", "postgresql", "Valkey", "review",
+        "Also answers at", "https://peerview.example",
+    ):  # fmt: skip
         assert expected in out
     for secret in ("TOPSECRET", "dbpassword", "smtppassword", "cachepassword"):
         assert secret not in out

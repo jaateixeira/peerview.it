@@ -116,6 +116,7 @@ def make_harness(
     *,
     base_url: str = "http://testserver",
     policy: VerificationPolicy = DEFAULT_POLICY,
+    aliases: tuple[str, ...] = (),
 ) -> Harness:
     ids = count(1)
     users = InMemoryUserRepository()
@@ -193,7 +194,9 @@ def make_harness(
         clock,
     )
     quick = QuickReviewService(tenancy, calls, rounds, invitations, artifacts, users, clock)
-    settings = Settings(secret_key="test-secret", base_url=base_url, verification_policy=policy)
+    settings = Settings(
+        secret_key="test-secret", base_url=base_url, verification_policy=policy, aliases=aliases
+    )
     app = build_app(
         settings, auth, verification, tenancy, calls, rubrics, rounds, reviews, invitations, quick,
         dict(providers or {}),

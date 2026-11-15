@@ -30,6 +30,8 @@ def startup_panel(
     table.add_column(style="bold cyan", justify="right")
     table.add_column()
     table.add_row("Address", settings.base_url)
+    if settings.aliases:
+        table.add_row("Also answers at", ", ".join(settings.aliases))
     table.add_row("Database", _scheme(settings.database_url))
     table.add_row("Cache", cache_kind)
     table.add_row("Mail", mail_mode)

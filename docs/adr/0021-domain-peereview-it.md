@@ -1,18 +1,22 @@
-# 0021. The hosted site lives at peereview.it
+# 0021. The hosted site lives at peereview.it and peerview.it
 
 Status: accepted
 
 ## Context
-The product is called Previewit, but `preview.it` belongs to someone else. The docs and the repository used three spellings for the address (`peereview.it`, `prreview.it`, `peerreview.it`), and the business docs listed the name as an open question. The founder registered **`peereview.it`** on 2026-11-14 (yearly renewal).
+The product is called Previewit, but `preview.it` belongs to someone else. The docs and the repository used three spellings for the address, and the business docs listed the name as an open question. The founder registered **`peereview.it`** (2026-11-14) and **`peerview.it`** (2026-11-15), both renewed yearly. `peereview.it` reads as "peer review it" but has to be spelled aloud; `peerview.it` is typed as it is heard.
 
 ## Decision
-- **The hosted site is `https://peereview.it`.** Read it as "peer review it": *peer*, then *eview*, one `r` in the middle. Docs, examples and mail use this one spelling.
-- **The product name stays Previewit.** The page footer shows the site address beside the name. It is read from `base_url` (`Settings.host`), so a self-hosted site shows its own address and no domain is hard-coded.
-- **Placeholders use `peereview.example`** in the example configuration and in tests. `.example` is reserved, so nothing can be sent to a real site by mistake.
-- **The GitHub repository keeps its name** (`jaateixeira/prreview.it`) for now. Links to it stay as they are. Renaming it is the owner's choice; GitHub redirects the old name.
+- **One site, one main address, any number of aliases.** `[server] base_url` is the main address. `[server] aliases` lists other addresses of the same site. A request that arrives under an alias is redirected (308) to the same page at the main address, before anything else runs.
+- **Why redirect and not serve both.** Forms are checked against one origin, cookies belong to one host, and Google, Apple and HAKA each return to one registered address. One origin keeps all of that simple and safe; no page or link is ever built from the name in a request.
+- **Which name is main is configuration, not code.** These docs write `peereview.it` as the main address and `peerview.it` as the alias until the founder says otherwise; swapping them is two lines in the configuration file.
+- **The product name stays Previewit.** The page footer shows the main address beside the name, read from `base_url` (`Settings.host`), so a self-hosted site shows its own.
+- **Placeholders use `peereview.example` and `peerview.example`** in the example configuration and in tests. `.example` is reserved, so nothing can reach a real site by mistake.
+- **The GitHub repository keeps its name** (`jaateixeira/prreview.it`) for now. Renaming it is the owner's choice; GitHub redirects the old name.
 
 ## Consequences
-- Said aloud, people may type `peerreview.it` (two r's), which is a different name. Print the link, and write it `peeReview.it` where capitals help.
-- Mail will go out from an address at `peereview.it`; the domain needs SPF, DKIM and DMARC records before the first invitation is sent.
-- HAKA registration (ADR 0007) can now name the real entity ID, `https://peereview.it/saml/sp`.
+- Both names must reach the server (DNS and the proxy or tunnel), and each needs a certificate. Hosts that are neither the main address nor an alias are served as before, so the health check on `127.0.0.1` keeps working.
+- A form posted to an alias is moved, not processed; the browser then shows the form again at the main address. Links in emails always use the main address.
+- Mail goes out from an address at the main domain; that domain needs SPF, DKIM and DMARC records before the first invitation is sent.
+- HAKA registration (ADR 0007) names the entity ID at the main address, for example `https://peereview.it/saml/sp`. Changing the main address later means registering again with each login provider.
+- "PeerView" is used as a name by other companies. It is an address here, not the product name; check the EU trade mark register before building a brand on the word.
 - A `.it` name must keep two working name servers and correct holder details, and it must be renewed each year.
