@@ -11,6 +11,7 @@ class InMemoryPreparedRequestRepository:
     def __init__(self) -> None:
         self._rows: dict[str, PreparedRequest] = {}
         self.pretend_count: int | None = None  # tests: act as if this many were waiting
+        self.pretend_files: int | None = None
 
     def add(self, token_hash: str, prepared: PreparedRequest) -> None:
         self._rows[token_hash] = prepared
@@ -27,6 +28,11 @@ class InMemoryPreparedRequestRepository:
 
     def count(self) -> int:
         return self.pretend_count if self.pretend_count is not None else len(self._rows)
+
+    def count_files(self) -> int:
+        if self.pretend_files is not None:
+            return self.pretend_files
+        return sum(1 for p in self._rows.values() if p.file_content is not None)
 
     def raw_keys(self) -> list[str]:
         return list(self._rows)

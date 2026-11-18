@@ -59,7 +59,7 @@ flowchart LR
 | Create call with rubric | M2, M3 | Call = assignment in Education |
 | Send call for authors | M2, MA step C (done) | Public (plain URL) or protected (URL with token); revoke or replace the token |
 | Send call for reviewers | MA step D (done) | One personal invitation per reviewer, bound to an email, carrying the work to review; Previewit can email it with a cover letter |
-| Request a review (quick start) | MQ | One page: a file, a web page's address or text; typed or imported emails (txt, csv, json, xml); send. Makes space, call, round and invitations ([ADR 0018](../adr/0018-request-a-review.md)). A web page is checked for reach first ([ADR 0022](../adr/0022-review-a-web-page.md)) |
+| Request a review (quick start) | MQ | One page: a file, a web page's address or text; typed or imported emails (txt, csv, json, xml); send. Makes space, call, round and invitations ([ADR 0018](../adr/0018-request-a-review.md)). A web page is checked for reach first ([ADR 0022](../adr/0022-review-a-web-page.md)). It can be filled in before signing in; the form and its file wait an hour ([ADR 0024](../adr/0024-request-before-signing-in.md)) |
 | Prepare a review request (AI assistant) | MCP service | The assistant fills in Request a review through `/mcp`; the person opens the link, checks it and sends it. Nothing is sent before ([ADR 0023](../adr/0023-mcp-service-for-ai-assistants.md)) |
 | Open invitation and review | MA step D (done), ADR 0020 | No account needed: a guest reviewer is invited to join afterwards. The operator can require a verified email instead |
 | Audit the review process | Deferred | Auditor: read-only over reviews, allocation and the edit trail |

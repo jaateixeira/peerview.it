@@ -63,6 +63,8 @@ prepared_requests = Table(
     Column("payload", Text, nullable=False),  # JSON: title, address or text, reviewers, ...
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("expires_at", DateTime(timezone=True), nullable=False),
+    Column("file_name", String(255), nullable=True),  # a visitor's file, kept an hour (ADR 0024)
+    Column("file_content", LargeBinary, nullable=True),
     Index("ix_prepared_requests_expires_at", "expires_at"),
 )
 

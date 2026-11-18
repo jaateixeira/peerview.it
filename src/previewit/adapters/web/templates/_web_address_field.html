@@ -1,12 +1,14 @@
 {# The address of a web page, checked while it is typed (ADR 0022). Needs `web_address`; `page`
-   and `problem` (a check already made) are optional. #}
+   and `problem` (a check already made) are optional. `web_address_live` false: no live check
+   (a visitor: only accounts make Previewit fetch pages, ADR 0024). #}
+{% set live = web_address_live | default(true) %}
 <label class="field">{{ web_address_label | default('Address of the web page') }}
-  <small>(a page anyone can open: Previewit checks it can reach it)</small>
+  <small>(a page anyone can open: Previewit {{ 'checks it can reach it' if live else 'checks it when you send it' }})</small>
   <input type="text" name="web_address" value="{{ web_address }}" inputmode="url"
     autocomplete="url" spellcheck="false" placeholder="https://example.org/my-page"
     {% if web_address_required | default(true) %}required{% endif %}
-    hx-post="/pages/check" hx-trigger="input changed delay:800ms" hx-target="#page-check"
-    hx-params="csrf,web_address" hx-sync="this:replace" hx-indicator="#page-checking"
+    {% if live %}hx-post="/pages/check" hx-trigger="input changed delay:800ms" hx-target="#page-check"
+    hx-params="csrf,web_address" hx-sync="this:replace" hx-indicator="#page-checking"{% endif %}
     aria-describedby="page-check">
 </label>
 <p id="page-checking" class="htmx-indicator hint page-checking">Checking the page…</p>

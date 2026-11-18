@@ -4,9 +4,17 @@
   <h1>Get your work reviewed</h1>
   <p class="lead">Three quick steps: your work, your reviewers, send. Previewit makes the review
     space for you.</p>
-  {% if prepared %}
+  {% if prepared and kept_for_visitor %}
+  <p class="notice" role="status">Here is your request as you left it. Check it, then send it
+    out.</p>
+  {% elif prepared %}
   <p class="notice" role="status">An AI assistant prepared this request for you. Check
     everything below, then send it out. Nothing has been sent yet.</p>
+  {% endif %}
+  {% if visitor %}
+  <p>Fill it in now and sign in when you send it. Already have an account?
+    <a href="/login?next=%2Freview%2Fnew">Log in</a> ·
+    <a href="/signup?next=%2Freview%2Fnew">Create an account</a></p>
   {% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
@@ -22,8 +30,12 @@
       <label class="field">A PDF or text file <small>(PDF, .txt or .md, up to 10 MB)</small>
         <input type="file" name="file" accept=".pdf,.txt,.md,application/pdf,text/plain">
       </label>
+      {% if draft.kept_file %}
+      <p class="hint">Your file <strong>{{ draft.kept_file }}</strong> is kept for you. Choose
+        another file to replace it.</p>
+      {% endif %}
       {% with web_address = draft.web_address, web_address_label = 'or the address of a web page',
-              web_address_required = false %}{% include "_web_address_field.html" %}{% endwith %}
+              web_address_required = false, web_address_live = live_check %}{% include "_web_address_field.html" %}{% endwith %}
       <label class="field">or paste the text
         <textarea name="text" rows="6">{{ draft.text }}</textarea>
       </label>
@@ -72,6 +84,10 @@
       {% if not can_send %}
       <p class="hint">Confirm your email address first (see your <a href="/account">Account</a>) so
         Previewit can email in your name. You can still get the links and send them yourself.</p>
+      {% endif %}
+      {% if visitor %}
+      <p class="hint">Next you log in or create an account; your request waits for you, and a
+        file is kept for one hour.</p>
       {% endif %}
       <button class="btn" type="submit">Send it out</button>
     </fieldset>

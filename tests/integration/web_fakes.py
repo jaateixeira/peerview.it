@@ -110,6 +110,7 @@ class Harness:
     app: FastAPI
     base_url: str
     pages: FakePageChecker
+    prepared_repo: InMemoryPreparedRequestRepository
 
     def new_client(self) -> TestClient:
         """Another browser: same app, its own cookies."""
@@ -124,6 +125,7 @@ def make_harness(
     aliases: tuple[str, ...] = (),
 ) -> Harness:
     ids = count(1)
+    prepared_repo = InMemoryPreparedRequestRepository()
     pages = FakePageChecker({ESSAY.address: ESSAY})
     web = WebPageArtifact(pages)
     users = InMemoryUserRepository()
@@ -208,11 +210,11 @@ def make_harness(
         settings, auth, verification, tenancy, calls, rubrics, rounds, reviews, invitations, quick,
         dict(providers or {}), pages=pages,
         prepared=PreparedRequestsService(
-            InMemoryPreparedRequestRepository(), lambda: secrets.token_urlsafe(32), clock
+            prepared_repo, lambda: secrets.token_urlsafe(32), clock
         ),
     )  # fmt: skip
     client = TestClient(app, base_url=base_url, follow_redirects=False)
-    return Harness(client, auth, outbox, clock, app, base_url, pages)
+    return Harness(client, auth, outbox, clock, app, base_url, pages, prepared_repo)
 
 
 def make_client(

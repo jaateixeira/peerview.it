@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, tzinfo
 from pathlib import PurePath
+from urllib.parse import quote
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -14,11 +16,16 @@ from starlette.responses import Response
 
 from previewit.adapters.web.calls_routes import MAX_BODY_BYTES
 from previewit.adapters.web.kit import WebKit
+from previewit.adapters.web.limits import RateLimiter
 from previewit.adapters.web.local_time import BadTime, parse_day_time, viewer_zone
 from previewit.adapters.web.pages_routes import check_page
 from previewit.adapters.web.tenancy_routes import current_user
 from previewit.application.artifacts import ArtifactError, Upload
-from previewit.application.prepared_requests import PreparedRequestsService
+from previewit.application.prepared_requests import (
+    VISITOR,
+    InvalidPreparedRequest,
+    PreparedRequestsService,
+)
 from previewit.application.quick_review import (
     DUE_TIME,
     InvalidReviewRequest,
@@ -37,6 +44,7 @@ from previewit.domain.email_list import (
     parse_file,
     parse_typed,
 )
+from previewit.domain.identity import User
 
 # One byte more than the largest file Previewit reviews, so the plugin can say "too large".
 READ_LIMIT = 10_000_001
@@ -49,6 +57,7 @@ class Draft:
     title: str = ""
     text: str = ""
     web_address: str = ""
+    kept_file: str = ""  # the name of a file kept while its owner signed in (ADR 0024)
     emails: str = ""
     cover_letter: str = ""
     due: str = ""
@@ -96,7 +105,10 @@ def build_quick_review_router(
     kit: WebKit,
     pages: PageChecker,
     prepared: PreparedRequestsService,
+    visitors: RateLimiter,
 ) -> APIRouter:
+    """Request a review. Visitors may fill it in too (ADR 0024): Send it out keeps their form,
+    file included, and sends them to sign in; they come back to it filled in."""
     router = APIRouter()
     run = run_in_threadpool
 
@@ -109,7 +121,7 @@ def build_quick_review_router(
         status: int = 200,
         extra: dict[str, object] | None = None,
     ) -> Response:
-        user = current_user(request)
+        user: User | None = request.state.user
         return kit.render(
             request,
             "review_new.html",
@@ -119,7 +131,9 @@ def build_quick_review_router(
                 "error": error,
                 "found": found if found is not None else parse_typed(draft.emails),
                 "emails": draft.emails,
-                "can_send": user.email_verified,
+                "can_send": user.email_verified if user else True,
+                "visitor": user is None,
+                "live_check": user is not None,  # only accounts make Previewit fetch pages
                 "samples": SAMPLES,
                 "max_emails": MAX_EMAILS,
                 **(extra or {}),
@@ -129,13 +143,15 @@ def build_quick_review_router(
 
     @router.get("/review/new", response_class=HTMLResponse)
     async def new_review(request: Request) -> Response:
-        if current_user(request).is_guest:  # a guest joins first (ADR 0020)
+        user: User | None = request.state.user
+        if user is not None and user.is_guest:  # a guest joins first (ADR 0020)
             return RedirectResponse("/account/new", status_code=303)
         return form_page(request, Draft())
 
     @router.get("/prepared/{token}", response_class=HTMLResponse)
     async def open_prepared(request: Request, token: str) -> Response:
-        """A request an AI assistant prepared (ADR 0023): the form, filled in, to check."""
+        """A request an AI assistant prepared (ADR 0023), or the form a visitor filled in before
+        signing in (ADR 0024): filled in again, to check and send."""
         if current_user(request).is_guest:
             return RedirectResponse("/account/new", status_code=303)
         found = await run(prepared.open, token)
@@ -148,11 +164,18 @@ def build_quick_review_router(
             emails="\n".join(found.reviewers),
             cover_letter=found.message,
             due=found.due,
+            due_time=found.due_time or "16:00",
+            kept_file=found.file_name if found.file_content is not None else "",
         )
         page, problem = (None, None)
         if found.web_address:
             page, problem = await check_page(pages, found.web_address)
-        extra = {"prepared": token, "page": page, "problem": problem}
+        extra = {
+            "prepared": token,
+            "kept_for_visitor": found.source == VISITOR,
+            "page": page,
+            "problem": problem,
+        }
         return form_page(request, draft, extra=extra)
 
     @router.get("/review/samples/{name}")
@@ -168,7 +191,6 @@ def build_quick_review_router(
 
     @router.post("/review/emails/check", response_class=HTMLResponse)
     async def check_emails(request: Request) -> Response:
-        current_user(request)
         form = await kit.checked_form(request)
         if form is None:
             return kit.forbidden()
@@ -181,7 +203,6 @@ def build_quick_review_router(
 
     @router.post("/review/emails/import", response_class=HTMLResponse)
     async def import_emails(request: Request) -> Response:
-        current_user(request)
         if too_big(request):
             return HTMLResponse("That upload is too large.", 413)
         form = await kit.checked_form(request)
@@ -205,10 +226,43 @@ def build_quick_review_router(
             {"emails": shown, "found": found, "check_error": error, "max_emails": MAX_EMAILS},
         )
 
+    async def keep_for_visitor(
+        request: Request,
+        draft: Draft,
+        found: EmailList,
+        picked: tuple[str, bytes] | None,
+        again: Callable[[str, EmailList | None], Response],
+    ) -> Response:
+        if picked is not None:
+            try:  # the kind and size of a file can be checked now; a web page waits
+                await run(quick.check_upload, Upload(content=picked[1], filename=picked[0]))
+            except ArtifactError as problem:
+                return again(str(problem), found)
+        client = request.client.host if request.client else "unknown"
+        if not visitors.allow(client):
+            message = (
+                "You saved several requests in a short time. Wait a few minutes and try again."
+            )
+            return form_page(request, draft, error=message, found=found, status=429)
+        try:
+            token = await run(
+                lambda: prepared.keep_for_visitor(
+                    title=draft.title, web_address=draft.web_address, text=draft.text,
+                    reviewers=[email.value for email in found.emails],
+                    message=draft.cover_letter, due=draft.due, due_time=draft.due_time,
+                    file_name=picked[0] if picked else "",
+                    file_content=picked[1] if picked else None,
+                )
+            )  # fmt: skip
+        except InvalidPreparedRequest as problem:
+            return again(str(problem), found)
+        next_url = quote(f"/prepared/{token}", safe="")
+        return RedirectResponse(f"/login?next={next_url}", status_code=303)
+
     @router.post("/review")
     async def request_review(request: Request) -> Response:
-        user = current_user(request)
-        if user.is_guest:
+        user: User | None = request.state.user
+        if user is not None and user.is_guest:
             return RedirectResponse("/account/new", status_code=303)
         if too_big(request):
             return HTMLResponse("That upload is too large.", 413)
@@ -226,7 +280,10 @@ def build_quick_review_router(
             send_emails=kit.text(form, "send_emails") == "on",
         )
 
-        token = kit.text(form, "prepared")  # a request an AI assistant prepared (ADR 0023)
+        token = kit.text(form, "prepared")  # prepared by an assistant or kept for a visitor
+        kept = await run(prepared.open, token) if token else None
+        if kept is not None and kept.file_content is not None:
+            draft.kept_file = kept.file_name
         keep: dict[str, object] | None = {"prepared": token} if token else None
 
         def again(message: str, found: EmailList | None = None) -> Response:
@@ -248,6 +305,10 @@ def build_quick_review_router(
 
         # The work: a file, a web page's address, or pasted text.
         picked = await uploaded(form, "file")
+        keeps_file = kept is not None and kept.file_content is not None
+        if picked is None and keeps_file and not draft.web_address:
+            assert kept is not None and kept.file_content is not None
+            picked = (kept.file_name, kept.file_content)  # kept while they signed in
         if draft.web_address and (picked is not None or draft.text.strip()):
             return again("Give one thing to review: a file, a web page or pasted text.", found)
         if picked is not None:
@@ -259,6 +320,9 @@ def build_quick_review_router(
             upload, title = Upload(text=draft.text), draft.title
         else:
             return again("Choose a file, give the address of a web page or paste your text.", found)
+
+        if user is None:  # a visitor: keep the form, file included, while they sign in
+            return await keep_for_visitor(request, draft, found, picked, again)
 
         zone = viewer_zone(request)
         try:
@@ -288,7 +352,7 @@ def build_quick_review_router(
             )
 
         if token:
-            await run(prepared.used, token)  # sent: the prepared copy is no longer needed
+            await run(prepared.used, token)  # sent: the kept copy and its file go
         base = kit.settings.base_url.rstrip("/")
         return kit.render(
             request,

@@ -143,6 +143,14 @@ class QuickReviewService:
             space.id, call.id, submission.id, round_.id, tuple(invites), tuple(left_out), title
         )
 
+    def check_upload(self, upload: Upload) -> None:
+        """What can be checked before signing in (ADR 0024): the kind and size of a file.
+        Raises ArtifactError. A web page waits: only accounts make Previewit fetch."""
+        if upload.content is None:
+            return
+        upload, kind = self._recognise(upload)
+        self._artifacts.get(kind).ingest(upload)
+
     # -- helpers ----------------------------------------------------------------------------
 
     def _deliver(

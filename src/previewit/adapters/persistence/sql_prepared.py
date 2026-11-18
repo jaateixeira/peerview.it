@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from sqlalchemy import Engine, delete, func, insert, select
 
 from previewit.adapters.persistence.tables import prepared_requests
-from previewit.application.prepared_requests import PreparedRequest
+from previewit.application.prepared_requests import ASSISTANT, PreparedRequest
 
 
 def _utc(value: datetime) -> datetime:
@@ -27,6 +27,8 @@ class SqlPreparedRequestRepository:
             "reviewers": list(prepared.reviewers),
             "message": prepared.message,
             "due": prepared.due,
+            "source": prepared.source,
+            "due_time": prepared.due_time,
         }
         with self._engine.begin() as conn:
             conn.execute(
@@ -35,6 +37,8 @@ class SqlPreparedRequestRepository:
                     payload=json.dumps(payload, ensure_ascii=False),
                     created_at=prepared.created_at,
                     expires_at=prepared.expires_at,
+                    file_name=prepared.file_name or None,
+                    file_content=prepared.file_content,
                 )
             )
 
@@ -46,9 +50,11 @@ class SqlPreparedRequestRepository:
         if row is None:
             return None
         data = json.loads(row.payload)
+        content = bytes(row.file_content) if row.file_content is not None else None
         return PreparedRequest(
             data["title"], data["web_address"], data["text"], tuple(data["reviewers"]),
             data["message"], data["due"], _utc(row.created_at), _utc(row.expires_at),
+            data.get("source", ASSISTANT), row.file_name or "", content, data.get("due_time", ""),
         )  # fmt: skip
 
     def delete(self, token_hash: str) -> None:
@@ -64,3 +70,8 @@ class SqlPreparedRequestRepository:
     def count(self) -> int:
         with self._engine.connect() as conn:
             return conn.execute(select(func.count()).select_from(prepared_requests)).scalar_one()
+
+    def count_files(self) -> int:
+        query = select(func.count()).where(prepared_requests.c.file_content.is_not(None))
+        with self._engine.connect() as conn:
+            return conn.execute(query).scalar_one()

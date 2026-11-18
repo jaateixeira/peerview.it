@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import asyncio
+from collections.abc import AsyncIterator, Mapping
+from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import quote
 
@@ -10,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -60,6 +63,20 @@ HERE = Path(__file__).parent
 SOURCE_URL = "https://github.com/jaateixeira/prreview.it"
 
 
+CLEANUP_SECONDS = 300.0  # how often forms kept for visitors and expired requests are deleted
+
+
+async def forget_expired_forever(prepared: PreparedRequestsService) -> None:
+    """Delete expired prepared requests and the files kept with them (ADR 0024), every few
+    minutes, so a visitor's file is gone soon after its hour even if nobody asks for it."""
+    while True:
+        await asyncio.sleep(CLEANUP_SECONDS)
+        try:
+            await run_in_threadpool(prepared.forget_expired)
+        except Exception:  # a bad moment for the database must not stop the loop
+            logger.exception("Could not delete expired prepared requests")
+
+
 def build_app(
     settings: Settings,
     auth: AuthService,
@@ -77,7 +94,15 @@ def build_app(
     prepared: PreparedRequestsService,
     version: str = "dev",
 ) -> FastAPI:
-    app = FastAPI(title="Previewit", docs_url=None, redoc_url=None)
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        cleanup = asyncio.create_task(forget_expired_forever(prepared))
+        try:
+            yield
+        finally:
+            cleanup.cancel()
+
+    app = FastAPI(title="Previewit", docs_url=None, redoc_url=None, lifespan=lifespan)
     templates = Jinja2Templates(directory=HERE / "templates")
     templates.env.globals["source_url"] = SOURCE_URL
     templates.env.globals["site_host"] = settings.host
@@ -159,7 +184,13 @@ def build_app(
     )
     app.include_router(build_reviews_router(reviews=reviews, kit=kit))
     app.include_router(
-        build_quick_review_router(quick=quick, kit=kit, pages=pages, prepared=prepared)
+        build_quick_review_router(
+            quick=quick,
+            kit=kit,
+            pages=pages,
+            prepared=prepared,
+            visitors=RateLimiter(10, 600),  # forms kept per client address (ADR 0024)
+        )
     )
     mcp = McpServer(
         prepared=prepared,

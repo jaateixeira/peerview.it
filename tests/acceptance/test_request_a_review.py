@@ -27,7 +27,12 @@ class RequestReviewPage:
     def sign_up_from_the_home_page(self, name: str, email: str) -> None:
         self.page.goto(self.base_url)
         self.page.get_by_role("link", name="Request a review").first.click()
+        # The form comes first (ADR 0024); wait for it before following its sign-up link.
+        expect(
+            self.page.get_by_text("Fill it in now and sign in when you send it.")
+        ).to_be_visible()
         self.page.get_by_role("link", name="Create an account").click()
+        expect(self.page.get_by_role("heading", name="Create your account")).to_be_visible()
         self.page.get_by_label("Name").fill(name)
         self.page.get_by_label("Email").fill(email)
         self.page.get_by_label("Password").fill(PASSWORD)
