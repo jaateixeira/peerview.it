@@ -136,10 +136,39 @@ def test_a_page_opened_at_another_address_is_told_where_previewit_runs():
     r = client.post(
         "/login",
         data={"csrf": token, "email": "a@x.fi", "password": PASSWORD},
-        headers={"Origin": "http://127.0.0.1:8000"},
+        headers={"Origin": "https://www.peerview.it"},
     )
     assert r.status_code == 403
-    assert "open Previewit at http://testserver" in r.text and "127.0.0.1" in r.text
+    assert "This page was opened at https://www.peerview.it" in r.text
+    assert "Previewit's address is http://testserver" in r.text
+    assert 'href="http://testserver/"' in r.text
+
+
+def test_each_refusal_says_what_went_wrong():
+    client, _ = make_client()
+    form = {"email": "a@x.fi", "password": PASSWORD}
+    no_cookie = client.post("/login", data={**form, "csrf": "anything"})
+    assert no_cookie.status_code == 403
+    assert "did not send Previewit's form cookie" in no_cookie.text
+    csrf_token(client, "/login")
+    stale = client.post("/login", data={**form, "csrf": "from-an-older-page"})
+    assert stale.status_code == 403 and "This page was out of date" in stale.text
+    assert "Reload the page" in stale.text
+
+
+def test_a_strange_origin_is_shown_safely():
+    client, _ = make_client()
+    token = csrf_token(client, "/login")
+    r = client.post("/login", data={"csrf": token}, headers={"Origin": "https://x<script>y"})
+    assert r.status_code == 403 and "<script>" not in r.text and "&lt;script&gt;" in r.text
+
+
+def test_the_form_cookie_outlives_the_browser_session():
+    client, _ = make_client()
+    r = client.get("/login")
+    cookie = next(v for k, v in r.headers.multi_items() if k == "set-cookie" and "pv_csrf" in v)
+    assert "Max-Age=31536000" in cookie  # a year, so a restored tab still matches
+    assert r.headers["cache-control"] == "private, no-cache"  # no proxy keeps a page's token
 
 
 def test_a_tampered_session_cookie_means_anonymous():

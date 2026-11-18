@@ -148,3 +148,39 @@ def test_a_guest_reviewer_still_joins_first():
     guest = c.h.new_client()
     post(guest, f"{link}/guest", {"name": "G"}, page=link)
     assert guest.get(NEW).headers["location"] == "/account/new"
+
+
+def test_the_whole_visitor_round_trip_works_on_an_https_site():
+    """As on peerview.it: https, secure cookies, and the browser's Origin on every form."""
+    h = make_harness(base_url="https://peerview.it")
+    visitor = h.new_client()
+    browser = {"Origin": "https://peerview.it"}
+    token = csrf_token(visitor, NEW)
+    checked = visitor.post("/review/emails/check", data={"csrf": token, "emails": "rita@x.fi"},
+                           headers=browser)  # fmt: skip
+    assert checked.status_code == 200
+    sent = visitor.post(
+        "/review",
+        data={"csrf": token, "title": "Chapter 2", "emails": "rita@x.fi"},
+        files={"file": ("chapter.pdf", PDF, "application/pdf")},
+        headers=browser,
+    )
+    link = saved_link(sent)
+    signup_page = visitor.get(f"/signup?next={link}")
+    assert "Your review request is saved" in signup_page.text
+    joined = visitor.post(
+        "/signup",
+        data={"csrf": csrf_token(visitor, "/signup"), "email": "vera@x.fi", "name": "Vera",
+              "password": "correct horse battery", "next": link},
+        headers=browser,
+    )  # fmt: skip
+    assert joined.status_code == 303 and joined.headers["location"] == link
+    form = visitor.get(link)
+    assert "Here is your request as you left it" in form.text
+    done = visitor.post(
+        "/review",
+        data={"csrf": csrf_token(visitor, link), "title": "Chapter 2", "emails": "rita@x.fi",
+              "prepared": link.rsplit("/", 1)[1]},
+        headers=browser,
+    )  # fmt: skip
+    assert done.status_code == 200 and "“Chapter 2” is up for review" in done.text

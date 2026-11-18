@@ -145,6 +145,16 @@ journalctl -u previewit -n 50            # if it does not
 
 **Logs and console.** On start the service prints a summary (address, database kind, cache, mail, login methods, artifact types, policy; never a secret). Logs go to stderr, so `journalctl -u previewit -f` shows them. For debugging set `[logging] level = "DEBUG"`, or `TRACE` to see every cache hit and miss, and restart.
 
+**A form is refused** ("Form refused" page, HTTP 403). The page says why, and the log has a line `Form refused on <path>: <reason>` (`journalctl -u previewit | grep "Form refused"`). The usual causes:
+
+| The page says | Cause | Fix |
+|---|---|---|
+| opened at another address | The browser used a name or scheme other than `base_url`: `www.`, `http://`, a LAN or Tailscale address, or an alias missing from `[server] aliases` | Open the site at `base_url`; list every other public name in `aliases` so it redirects there |
+| did not send the form cookie | Cookies blocked, or an https `base_url` reached over plain http | Allow cookies; reach the site over https |
+| out of date | The page was opened before the browser's form cookie was renewed | Reload the page |
+
+A development copy started with a production `base_url` (say, `make run` with `previewit.toml` from the server) refuses every form at `http://localhost:8000`: set `PREVIEWIT_BASE_URL=http://localhost:8000` for development.
+
 ## 7. Front: TLS and reverse proxy
 
 **nginx.** `/etc/nginx/sites-available/previewit` (link it into `sites-enabled`):
