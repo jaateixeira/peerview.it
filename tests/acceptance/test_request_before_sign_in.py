@@ -27,6 +27,7 @@ def test_a_visitor_fills_it_in_signs_up_and_sends_it(page: Page, base_url: str):
     # the request is saved; she creates her account
     expect(page.get_by_text("Your review request is saved.")).to_be_visible()
     page.get_by_role("link", name="Create an account").click()
+    expect(page.get_by_role("heading", name="Create your account")).to_be_visible()
     expect(page.get_by_text("Your review request is saved.")).to_be_visible()
     page.get_by_label("Name").fill("Maya Maker")
     page.get_by_label("Email").fill(unique("maya"))
