@@ -17,6 +17,7 @@
 | Cache | Valkey (recommended, optional): keeps the signed-in user close at hand. Required if you run more than one worker. |
 | Front | nginx with TLS, or a tunnel that ends TLS and forwards to `127.0.0.1:8000` |
 | Email | An SMTP relay. The application does not start on an https address without one. |
+| Outbound web | DNS and outgoing HTTP and HTTPS (ports 80 and 443) to the internet: Previewit checks web pages before they go to reviewers (ADR 0022). It ignores proxy settings in the environment and refuses private addresses itself. |
 | Hardware | Provisional: 4 CPU cores, 8 GB RAM, SSD storage. No load tests exist yet; figures will be set in M7. |
 | Skills | Linux administration, systemd, nginx and TLS, PostgreSQL backup and restore, DNS, security patching |
 
@@ -169,6 +170,20 @@ sudo certbot --nginx -d review.example.org
 ```
 
 The application also refuses bodies announcing more than 12 MB, but only the proxy can stop a request that does not announce its size, so keep `client_max_body_size`.
+
+**The MCP service** (`/mcp`, ADR 0023) needs no account, so strangers can call it. The application allows 20 prepared requests per client address every 10 minutes in each worker; for a limit across workers, add one in nginx:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=mcp:10m rate=30r/m;   # in the http block
+location = /mcp {
+    limit_req zone=mcp burst=20 nodelay;
+    client_max_body_size 300k;
+    proxy_pass http://127.0.0.1:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
 
 **Tunnel.** A tunnel that ends TLS at its provider (for example `cloudflared`) can replace nginx: point its public hostname at `http://127.0.0.1:8000`. It must run on the same host, or `--forwarded-allow-ips` must name the address it connects from.
 

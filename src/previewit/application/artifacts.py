@@ -10,6 +10,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal, Protocol, runtime_checkable
 
+from previewit.application.web_pages import PageChecker
 from previewit.domain.calls import Artifact
 
 
@@ -22,13 +23,14 @@ class Upload:
     text: str | None = None  # from a text box
     content: bytes | None = None  # from a file
     filename: str | None = None
+    url: str | None = None  # the address of a web page (ADR 0022)
 
 
 @runtime_checkable
 class ArtifactType(Protocol):
     key: str
     label: str
-    input_kind: Literal["text", "file"]  # which input the submission form shows
+    input_kind: Literal["text", "file", "url"]  # which input the submission form shows
     accept: str  # hint for the file picker, e.g. ".pdf"
     max_bytes: int
     annotation_kind: str  # "" when reviewers cannot pin comments to this type of content
@@ -45,6 +47,32 @@ class ArtifactType(Protocol):
         """Validate where a comment is pinned (the selector the page sent) against this
         artifact and return it normalised. Raise ArtifactError if it does not fit."""
         ...
+
+
+@runtime_checkable
+class NamesItself(Protocol):
+    """An artifact type whose content has a name to offer as a title (a web page's title)."""
+
+    def title_of(self, artifact: Artifact) -> str: ...
+
+
+@dataclass(frozen=True)
+class PluginServices:
+    """What the core lends to plugins that need the world outside: given at startup by the
+    composition root, so a plugin never imports an adapter."""
+
+    pages: PageChecker
+
+
+@runtime_checkable
+class UsesServices(Protocol):
+    def connect(self, services: PluginServices) -> None: ...
+
+
+def connect_plugins(plugins: Iterable[object], services: PluginServices) -> None:
+    for plugin in plugins:
+        if isinstance(plugin, UsesServices):
+            plugin.connect(services)
 
 
 class UnknownArtifactType(KeyError):
@@ -70,3 +98,7 @@ class ArtifactRegistry:
 
     def all(self) -> list[ArtifactType]:
         return list(self._types.values())
+
+    def for_input(self, input_kind: str) -> ArtifactType | None:
+        """The first type that takes this kind of input ("url" for a web address)."""
+        return next((t for t in self._types.values() if t.input_kind == input_kind), None)

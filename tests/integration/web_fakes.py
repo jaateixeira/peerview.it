@@ -23,6 +23,7 @@ from previewit.adapters.persistence.memory import (
     InMemoryUserRepository,
 )
 from previewit.adapters.persistence.memory_calls import InMemoryCallRepository
+from previewit.adapters.persistence.memory_prepared import InMemoryPreparedRequestRepository
 from previewit.adapters.persistence.memory_reviews import InMemoryReviewRepository
 from previewit.adapters.persistence.memory_rounds import InMemoryRoundRepository
 from previewit.adapters.persistence.memory_rubrics import InMemoryRubricRepository
@@ -35,6 +36,7 @@ from previewit.application.calls import CallsService
 from previewit.application.criteria import CriterionRegistry
 from previewit.application.invitations import InvitationsService
 from previewit.application.ports import MailError
+from previewit.application.prepared_requests import PreparedRequestsService
 from previewit.application.quick_review import QuickReviewService
 from previewit.application.reviews import ReviewsService
 from previewit.application.rounds import RoundsService
@@ -52,6 +54,8 @@ from previewit.plugins.criteria import (
 )
 from previewit.plugins.pdf import PdfArtifact
 from previewit.plugins.text import TextArtifact
+from previewit.plugins.webpage import WebPageArtifact
+from tests.unit.test_webpage_plugin import ESSAY, FakePageChecker
 
 
 class FakeProvider:
@@ -105,6 +109,7 @@ class Harness:
     clock: Clock
     app: FastAPI
     base_url: str
+    pages: FakePageChecker
 
     def new_client(self) -> TestClient:
         """Another browser: same app, its own cookies."""
@@ -119,6 +124,8 @@ def make_harness(
     aliases: tuple[str, ...] = (),
 ) -> Harness:
     ids = count(1)
+    pages = FakePageChecker({ESSAY.address: ESSAY})
+    web = WebPageArtifact(pages)
     users = InMemoryUserRepository()
     auth = AuthService(
         users,
@@ -137,7 +144,7 @@ def make_harness(
         tenancy,
         tenancy_repo,
         users,
-        ArtifactRegistry([TextArtifact(), PdfArtifact()]),
+        ArtifactRegistry([TextArtifact(), PdfArtifact(), web]),
         UnlimitedEntitlements(),
         lambda: f"c{next(ids)}",
         clock,
@@ -147,7 +154,7 @@ def make_harness(
     criteria = CriterionRegistry(
         [NumericCriterion(), LevelsCriterion(), YesNoCriterion(), TextCriterion()]
     )
-    artifacts = ArtifactRegistry([TextArtifact(), PdfArtifact()])
+    artifacts = ArtifactRegistry([TextArtifact(), PdfArtifact(), web])
     rubrics = RubricsService(
         rubric_repo,
         call_repo,
@@ -199,10 +206,13 @@ def make_harness(
     )
     app = build_app(
         settings, auth, verification, tenancy, calls, rubrics, rounds, reviews, invitations, quick,
-        dict(providers or {}),
+        dict(providers or {}), pages=pages,
+        prepared=PreparedRequestsService(
+            InMemoryPreparedRequestRepository(), lambda: secrets.token_urlsafe(32), clock
+        ),
     )  # fmt: skip
     client = TestClient(app, base_url=base_url, follow_redirects=False)
-    return Harness(client, auth, outbox, clock, app, base_url)
+    return Harness(client, auth, outbox, clock, app, base_url, pages)
 
 
 def make_client(

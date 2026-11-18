@@ -12,6 +12,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    Text,
     UniqueConstraint,
     func,
 )
@@ -50,6 +51,19 @@ email_verifications = Table(
     Column("expires_at", DateTime(timezone=True), nullable=False),
     Column("used_at", DateTime(timezone=True), nullable=True),
     Index("ix_email_verifications_user_id", "user_id"),
+)
+
+
+# A review request an AI assistant prepared for someone to check and send (ADR 0023). It belongs
+# to no tenant until the person sends it; only a hash of its secret token is kept.
+prepared_requests = Table(
+    "prepared_requests",
+    metadata,
+    Column("token_hash", String(64), primary_key=True),
+    Column("payload", Text, nullable=False),  # JSON: title, address or text, reviewers, ...
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("expires_at", DateTime(timezone=True), nullable=False),
+    Index("ix_prepared_requests_expires_at", "expires_at"),
 )
 
 

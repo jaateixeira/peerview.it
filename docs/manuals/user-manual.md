@@ -4,7 +4,7 @@
 
 ## 1. What Previewit does
 
-People review each other's work. Reviewers comment directly on a text or PDF and score it against criteria. Individuals and groups can be on either side. An organizer sets the rules; Previewit handles who reviews whom, deadlines and anonymity.
+People review each other's work. Reviewers comment directly on a text or PDF, or on a public web page, and score it against criteria. Individuals and groups can be on either side. An organizer sets the rules; Previewit handles who reviews whom, deadlines and anonymity.
 
 ## 2. Words
 
@@ -41,11 +41,17 @@ An auditor, who checks how reviews were done, is planned for later.
 
 Press **Request a review** on the home page. Sign in with Google, Apple or your email, and one page asks for three things:
 
-1. **The work.** Choose a PDF or a text file (`.txt`, `.md`), or paste the text. The title comes from the file name if you leave it empty. Other kinds of file are not reviewed yet: save them as a PDF.
+1. **The work.** Choose a PDF or a text file (`.txt`, `.md`), give the address of a web page, or paste the text. The title comes from the file name or the page's title if you leave it empty. Other kinds of file are not reviewed yet: save them as a PDF.
+
+   A web page must be one anyone can open. Previewit checks it can reach it while you type and shows its title; a page behind a login, or on a private network, is refused with the reason. Previewit does not copy the page: reviewers open it from Previewit, so they see it as it is when they look. (ADR 0022)
 2. **The reviewers.** Type or paste email addresses, separated by commas, spaces or new lines. Previewit checks them as you type and points at any that do not look right. Or import a list from a `.txt`, `.csv`, `.json` or `.xml` file: Previewit picks out the addresses. **See a sample** shows each format and lets you download it.
 3. **Send it.** Add a few words for the reviewers and a due date if you like (two weeks otherwise). Reviews are due at 16:00 in your time zone unless you choose another time. Leave **Email the invitations for me** ticked and Previewit mails each person their own link in your name (confirm your own email address first). Untick it and you get the links to send yourself.
 
 Previewit makes the review space, the call, the round and one personal invitation per reviewer. The last page lists each reviewer with their link, shown once, and takes you to the round to follow progress.
+
+### From your AI assistant
+
+Your AI assistant can prepare the request for you. Connect it to Previewit's MCP service (the address and the command are on the page *For AI assistants*, linked at the bottom of every page). When you ask the assistant for feedback, it can suggest Previewit and prepare the request: the work, the reviewers, a few words and a due date. It gives you a link. Open it, sign in, check the filled-in form and press **Send it out**. The assistant never sends anything itself, and a prepared request waits 7 days at most. (ADR 0023)
 
 ### Two ways to start
 
@@ -67,7 +73,7 @@ Use the hosted site. Sign-up asks for the minimum. Students and reviewers never 
 ## 5. Organizer
 
 1. **Create a space** and invite members by link. Tick the roles the link gives: organizer, author, reviewer (a participant is usually author and reviewer). Change a member's roles later on the space page. Form groups if groups submit or review. (M1)
-2. **Call for authors:** title, instructions, accepted type (text or PDF), deadline, and who may submit: public or protected. Publish, copy the link and send it. For a protected call, create a link with a token for each group you invite; you can revoke it and send a new one. Anyone who opens the link and verifies their email becomes an author in the space, so give a large public call a space of its own. (M2, MA)
+2. **Call for authors:** title, instructions, accepted type (text, PDF or web page), deadline, and who may submit: public or protected. Publish, copy the link and send it. For a protected call, create a link with a token for each group you invite; you can revoke it and send a new one. Anyone who opens the link and verifies their email becomes an author in the space, so give a large public call a space of its own. (M2, MA)
 3. **Build a rubric:** criteria with a scale (numeric, levels with descriptions, yes/no, free text) and optional weights. Rubrics are reusable. (M3)
 4. **Configure the round:** opening and closing time, anonymity, reviews per submission, allocation (random, round-robin or manual). (M4)
 5. **Allocate.** Previewit never allocates a party its own work or its own group's work, and balances the load. Adjust by hand if needed. (M4)
@@ -81,7 +87,7 @@ In Moodle, paste the space or call link into the course. Launch from Moodle with
 
 ## 6. Author (M2, M6)
 
-1. Open the call link you were sent (public or protected), verify your email, press **Join and submit**, and submit your text or PDF. In a group, one member submits for all.
+1. Open the call link you were sent (public or protected), verify your email, press **Join and submit**, and submit your text, PDF or the address of your web page. In a group, one member submits for all.
 2. When feedback is released, read comments in place on your work and the scores per criterion.
 3. Write a response to each review. If there is another round, submit a revision.
 
@@ -89,7 +95,7 @@ In Moodle, paste the space or call link into the course. Launch from Moodle with
 
 1. Open your invitation link, type your name if you like and press **Start reviewing**. You need no account. If the address already has a Previewit account, log in with it instead. Open the same link again to come back to your reviews. (MA, ADR 0020) Each task is a card with its deadline.
 2. The work is on the left, criteria on the right.
-3. Select text, or an area of a PDF page, to attach a comment.
+3. Select text to pin a comment to it, or write a comment about the whole work. A web page opens in a new tab; comment on it as a whole. (Comments pinned to an area of a PDF page come later.)
 4. Score each criterion; descriptions of the levels are shown beside it.
 5. Everything saves automatically. Submit when done. If you reviewed without an account, Previewit then offers **Join Previewit**: choose a password to keep your reviews and to ask for reviews of your own work. It is free for reviewers.
 6. In a reviewing group, all members edit one shared review; each edit is recorded.

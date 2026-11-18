@@ -51,33 +51,38 @@
 
       <section class="card stack" id="comments">
         <h2>Comments on the work</h2>
-        {% if ws.annotatable %}
         {% if ws.can_edit %}
         <form method="post" action="/tasks/{{ ws.task.id }}/annotations" hx-boost="false" class="form" id="comment-form">
           <input type="hidden" name="csrf" value="{{ csrf_token }}">
+          {% if ws.annotatable %}
           <input type="hidden" name="quote" id="comment-quote">
           <input type="hidden" name="start" id="comment-start">
           <input type="hidden" name="end" id="comment-end">
-          <p id="comment-selected" class="quote"><small>Select some text on the left, then write your comment.</small></p>
+          <p class="quote"><small id="comment-selected">To pin your comment to a place, select some text on the left. Otherwise it is about the whole work.</small>
+            <button class="btn btn-small btn-secondary" type="button" id="comment-unpin" hidden>About the whole work instead</button></p>
+          {% else %}
+          <p class="quote"><small>Your comment is about the whole work.</small></p>
+          {% endif %}
           <label class="field">Comment <textarea name="body" rows="3" maxlength="2000" required></textarea></label>
-          <button class="btn btn-small" type="submit" id="comment-submit" disabled>Add comment</button>
+          <button class="btn btn-small" type="submit" id="comment-submit">Add comment</button>
         </form>
         {% endif %}
         <ul class="list">
           {% for a in ws.annotations %}
+          {% set place = a.annotation.selector.quote or "the whole work" %}
           <li>
-            <blockquote class="quote">{{ a.annotation.selector.quote }}</blockquote>
+            {% if a.annotation.selector.quote %}<blockquote class="quote">{{ a.annotation.selector.quote }}</blockquote>
+            {% else %}<p class="quote"><small>About the whole work</small></p>{% endif %}
             <p>{{ a.annotation.body }} <small>by {{ a.author_label }}</small></p>
             {% if a.can_delete %}
             <form method="post" action="/tasks/{{ ws.task.id }}/annotations/{{ a.annotation.id }}/delete" hx-boost="false" class="inline">
               <input type="hidden" name="csrf" value="{{ csrf_token }}">
-              <button class="btn btn-small btn-secondary" type="submit" aria-label="Delete the comment on {{ a.annotation.selector.quote }}">Delete</button>
+              <button class="btn btn-small btn-secondary" type="submit" aria-label="Delete the comment on {{ place }}">Delete</button>
             </form>
             {% endif %}
           </li>
           {% else %}<li>No comments yet.</li>{% endfor %}
         </ul>
-        {% else %}<p><small>Comments cannot be pinned to this kind of work yet.</small></p>{% endif %}
       </section>
 
       {% if ws.shared and ws.trail %}

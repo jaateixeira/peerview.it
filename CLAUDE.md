@@ -17,7 +17,7 @@ Open-source peer-review platform for ANY organization (education is one preset).
 - Hosted-first: the hosted site (`peerview.it`; `peereview.it` leads to it, ADR 0021) is the product. Optimise sign-up to first review round (target: under 10 minutes).
 - Review by link is a core flow: request or give a review from a shared link with minimal sign-up.
 - Free tier: 50 MB of storage and 100 shares per user. The organizer pays above that; students and reviewers never pay. Limits go through the `Entitlements` port, never `if plan == ...`.
-- Year-1 scope: Education preset, text and PDF. No academic-venue features, code review or extra plugins.
+- Year-1 scope: Education preset; text, PDF and web pages (ADR 0022). No academic-venue features, code review or extra plugins.
 - Self-hosting is expert-only and unsupported: Debian Linux (stable) and PostgreSQL. Do not add Docker, installers, other OS support or a small-server mode. Never make the code slower or heavier on purpose.
 - Keep the developer setup easy (`make install`; SQLite for dev and tests).
 
@@ -25,7 +25,7 @@ Open-source peer-review platform for ANY organization (education is one preset).
 - Test first: write the failing test, then the code. Domain logic gets unit tests (hypothesis where invariants exist).
 - Each feature needs an acceptance scenario in `tests/acceptance` (Playwright, page-object style).
 - Before finishing any task: `make check` must pass.
-- Server returns HTML fragments (HTMX). No JSON APIs or SPA unless a plugin needs one. Keep JS tiny.
+- Server returns HTML fragments (HTMX). No JSON APIs or SPA unless a plugin needs one; the MCP service at `/mcp` is the one machine interface (ADR 0023). Keep JS tiny.
 - Record notable decisions as ADRs in `docs/adr/`.
 
 ## Commands

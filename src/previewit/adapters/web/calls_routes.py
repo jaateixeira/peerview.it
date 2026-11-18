@@ -59,6 +59,9 @@ async def read_upload(form: FormData, artifact_type: ArtifactType) -> Upload:
     if artifact_type.input_kind == "text":
         value = form.get("text")
         return Upload(text=value if isinstance(value, str) else "")
+    if artifact_type.input_kind == "url":
+        value = form.get("web_address")
+        return Upload(url=value if isinstance(value, str) else "")
     value = form.get("file")
     if isinstance(value, UploadFile) and value.filename:
         content = await value.read(artifact_type.max_bytes + 1)

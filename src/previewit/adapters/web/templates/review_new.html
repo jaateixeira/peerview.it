@@ -2,21 +2,28 @@
 {% block content %}
 <section class="stack request">
   <h1>Get your work reviewed</h1>
-  <p class="lead">Three quick steps: your file, your reviewers, send. Previewit makes the review
+  <p class="lead">Three quick steps: your work, your reviewers, send. Previewit makes the review
     space for you.</p>
+  {% if prepared %}
+  <p class="notice" role="status">An AI assistant prepared this request for you. Check
+    everything below, then send it out. Nothing has been sent yet.</p>
+  {% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
   <form method="post" action="/review" enctype="multipart/form-data" hx-boost="false" class="form steps">
     <input type="hidden" name="csrf" value="{{ csrf_token }}">
+    {% if prepared %}<input type="hidden" name="prepared" value="{{ prepared }}">{% endif %}
 
     <fieldset class="card step">
       <legend>What should we review?</legend>
-      <label class="field">Title <small>(we use the file name if you leave it empty)</small>
+      <label class="field">Title <small>(we use the file name or the page's title if you leave it empty)</small>
         <input type="text" name="title" value="{{ draft.title }}" maxlength="200" autocomplete="off">
       </label>
       <label class="field">A PDF or text file <small>(PDF, .txt or .md, up to 10 MB)</small>
         <input type="file" name="file" accept=".pdf,.txt,.md,application/pdf,text/plain">
       </label>
+      {% with web_address = draft.web_address, web_address_label = 'or the address of a web page',
+              web_address_required = false %}{% include "_web_address_field.html" %}{% endwith %}
       <label class="field">or paste the text
         <textarea name="text" rows="6">{{ draft.text }}</textarea>
       </label>

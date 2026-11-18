@@ -11,7 +11,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta, tzinfo
 
-from previewit.application.artifacts import ArtifactError, ArtifactRegistry, Upload
+from previewit.application.artifacts import ArtifactError, ArtifactRegistry, NamesItself, Upload
 from previewit.application.calls import CallsService, ShareLimitReached
 from previewit.application.invitations import InvitationsService
 from previewit.application.ports import MailError, UserRepository
@@ -37,7 +37,7 @@ class InvalidReviewRequest(ValueError):
 @dataclass(frozen=True)
 class ReviewRequest:
     title: str
-    upload: Upload  # a PDF, a text file or pasted text
+    upload: Upload  # a PDF, a text file, pasted text or a web page's address
     reviewers: Sequence[Email]
     cover_letter: str = ""
     send_emails: bool = True
@@ -68,6 +68,7 @@ class ReviewRequested:
     round_id: RoundId
     invites: tuple[InviteResult, ...]
     not_invited: tuple[str, ...]  # left out because the sharing limit was reached
+    title: str = ""  # as given, or as the work named itself (a web page's title)
 
 
 class QuickReviewService:
@@ -94,10 +95,6 @@ class QuickReviewService:
         user = self._users.get(actor)
         if user is None:
             raise InvalidReviewRequest("Log in first.")
-        try:
-            title = clean_title(request.title)
-        except InvalidCall as error:
-            raise InvalidReviewRequest(f"Give the review a title: {error}.") from None
         if not request.reviewers:
             raise InvalidReviewRequest("Add at least one reviewer's email address.")
         now = self._now()
@@ -107,7 +104,13 @@ class QuickReviewService:
         if due > now + timedelta(days=MAX_DAYS):
             raise InvalidReviewRequest("Choose a due date within the next year.")
         upload, kind = self._recognise(request.upload)
-        self._artifacts.get(kind).ingest(upload)  # ArtifactError now, not after the space exists
+        plugin = self._artifacts.get(kind)
+        artifact = plugin.ingest(upload)  # ArtifactError now, not after the space exists
+        named = plugin.title_of(artifact) if isinstance(plugin, NamesItself) else ""
+        try:
+            title = clean_title(request.title.strip() or named[:200])
+        except InvalidCall as error:
+            raise InvalidReviewRequest(f"Give the review a title: {error}.") from None
         if request.send_emails and not user.email_verified:
             raise VerificationRequired(Action.INVITE)  # the mail goes out in their name
 
@@ -137,7 +140,7 @@ class QuickReviewService:
                 continue
             invites.append(self._deliver(actor, round_.id, email, token, request))
         return ReviewRequested(
-            space.id, call.id, submission.id, round_.id, tuple(invites), tuple(left_out)
+            space.id, call.id, submission.id, round_.id, tuple(invites), tuple(left_out), title
         )
 
     # -- helpers ----------------------------------------------------------------------------
@@ -161,9 +164,14 @@ class QuickReviewService:
             return owned[0].id
         return self._tenancy.create_organization(actor, f"{name}'s reviews", GENERAL_PRESET).id
 
-    @staticmethod
-    def _recognise(upload: Upload) -> tuple[Upload, str]:
-        """A PDF file stays a PDF. Any other file must be plain UTF-8 text. Pasted text is text."""
+    def _recognise(self, upload: Upload) -> tuple[Upload, str]:
+        """A PDF file stays a PDF. Any other file must be plain UTF-8 text. Pasted text is text.
+        An address goes to the type that takes addresses (web pages, ADR 0022)."""
+        if upload.url is not None:
+            web = self._artifacts.for_input("url")
+            if web is None:
+                raise ArtifactError("This Previewit does not review web pages.")
+            return upload, web.key
         if upload.content is None:
             return upload, "text"
         if upload.content.startswith(b"%PDF-"):

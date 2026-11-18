@@ -15,8 +15,10 @@ from starlette.responses import Response
 from previewit.adapters.web.calls_routes import MAX_BODY_BYTES
 from previewit.adapters.web.kit import WebKit
 from previewit.adapters.web.local_time import BadTime, parse_day_time, viewer_zone
+from previewit.adapters.web.pages_routes import check_page
 from previewit.adapters.web.tenancy_routes import current_user
 from previewit.application.artifacts import ArtifactError, Upload
+from previewit.application.prepared_requests import PreparedRequestsService
 from previewit.application.quick_review import (
     DUE_TIME,
     InvalidReviewRequest,
@@ -24,6 +26,7 @@ from previewit.application.quick_review import (
     ReviewRequest,
 )
 from previewit.application.tenancy import NotFound, VerificationRequired
+from previewit.application.web_pages import PageChecker
 from previewit.domain.email_list import (
     MAX_EMAILS,
     MAX_FILE_BYTES,
@@ -45,6 +48,7 @@ class Draft:
 
     title: str = ""
     text: str = ""
+    web_address: str = ""
     emails: str = ""
     cover_letter: str = ""
     due: str = ""
@@ -86,7 +90,13 @@ def too_big(request: Request) -> bool:
         return True
 
 
-def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIRouter:
+def build_quick_review_router(
+    *,
+    quick: QuickReviewService,
+    kit: WebKit,
+    pages: PageChecker,
+    prepared: PreparedRequestsService,
+) -> APIRouter:
     router = APIRouter()
     run = run_in_threadpool
 
@@ -97,6 +107,7 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
         error: str | None = None,
         found: EmailList | None = None,
         status: int = 200,
+        extra: dict[str, object] | None = None,
     ) -> Response:
         user = current_user(request)
         return kit.render(
@@ -111,6 +122,7 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
                 "can_send": user.email_verified,
                 "samples": SAMPLES,
                 "max_emails": MAX_EMAILS,
+                **(extra or {}),
             },
             status,
         )
@@ -120,6 +132,28 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
         if current_user(request).is_guest:  # a guest joins first (ADR 0020)
             return RedirectResponse("/account/new", status_code=303)
         return form_page(request, Draft())
+
+    @router.get("/prepared/{token}", response_class=HTMLResponse)
+    async def open_prepared(request: Request, token: str) -> Response:
+        """A request an AI assistant prepared (ADR 0023): the form, filled in, to check."""
+        if current_user(request).is_guest:
+            return RedirectResponse("/account/new", status_code=303)
+        found = await run(prepared.open, token)
+        if found is None:
+            return kit.render(request, "prepared_gone.html", {"page_title": "Request gone"}, 404)
+        draft = Draft(
+            title=found.title,
+            text=found.text,
+            web_address=found.web_address,
+            emails="\n".join(found.reviewers),
+            cover_letter=found.message,
+            due=found.due,
+        )
+        page, problem = (None, None)
+        if found.web_address:
+            page, problem = await check_page(pages, found.web_address)
+        extra = {"prepared": token, "page": page, "problem": problem}
+        return form_page(request, draft, extra=extra)
 
     @router.get("/review/samples/{name}")
     async def sample(name: str) -> Response:
@@ -184,6 +218,7 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
         draft = Draft(
             title=kit.text(form, "title").strip(),
             text=kit.text(form, "text"),
+            web_address=kit.text(form, "web_address").strip(),
             emails=kit.text(form, "emails"),
             cover_letter=kit.text(form, "cover_letter"),
             due=kit.text(form, "due").strip(),
@@ -191,8 +226,11 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
             send_emails=kit.text(form, "send_emails") == "on",
         )
 
+        token = kit.text(form, "prepared")  # a request an AI assistant prepared (ADR 0023)
+        keep: dict[str, object] | None = {"prepared": token} if token else None
+
         def again(message: str, found: EmailList | None = None) -> Response:
-            return form_page(request, draft, error=message, found=found, status=400)
+            return form_page(request, draft, error=message, found=found, status=400, extra=keep)
 
         # The people: typed, plus a file of addresses if one came along.
         found = parse_typed(draft.emails)
@@ -208,15 +246,19 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
         if found.over_limit:
             return again(f"Ask up to {MAX_EMAILS} reviewers at a time.", found)
 
-        # The work: a file, or pasted text.
+        # The work: a file, a web page's address, or pasted text.
         picked = await uploaded(form, "file")
+        if draft.web_address and (picked is not None or draft.text.strip()):
+            return again("Give one thing to review: a file, a web page or pasted text.", found)
         if picked is not None:
             upload = Upload(content=picked[1], filename=picked[0])
             title = draft.title or title_from(picked[0])
+        elif draft.web_address:
+            upload, title = Upload(url=draft.web_address), draft.title  # the page names itself
         elif draft.text.strip():
             upload, title = Upload(text=draft.text), draft.title
         else:
-            return again("Choose a file or paste your text.", found)
+            return again("Choose a file, give the address of a web page or paste your text.", found)
 
         zone = viewer_zone(request)
         try:
@@ -245,13 +287,15 @@ def build_quick_review_router(*, quick: QuickReviewService, kit: WebKit) -> APIR
                 found,
             )
 
+        if token:
+            await run(prepared.used, token)  # sent: the prepared copy is no longer needed
         base = kit.settings.base_url.rstrip("/")
         return kit.render(
             request,
             "review_done.html",
             {
                 "page_title": "Review requested",
-                "title": title,
+                "title": result.title or title,
                 "result": result,
                 "rows": [(invite, f"{base}/i/{invite.token}") for invite in result.invites],
             },

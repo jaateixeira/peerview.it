@@ -10,7 +10,7 @@ from previewit.application.reviews import AnswerErrors, ReviewsService
 from previewit.application.rubrics import RubricsService
 from previewit.application.tenancy import Forbidden, NotFound
 from previewit.domain.party import GroupParty, UserParty
-from previewit.domain.reviews import EditConflict, InvalidReview, ReviewClosed
+from previewit.domain.reviews import WHOLE_WORK, EditConflict, InvalidReview, ReviewClosed
 from previewit.plugins.criteria import (
     LevelsCriterion,
     NumericCriterion,
@@ -269,7 +269,7 @@ def test_bad_selectors_and_comments_are_refused(w: ReviewWorld):
     task = w.task_for(UserParty(SUE), SAM)
     good = selector("Hello", "ell")
     for bad in (
-        {},
+        {"quote": "ell"},  # pinned, but not to a place
         {**good, "quote": "xyz"},  # not what is at that place
         {**good, "start": "4", "end": "2"},
         {**good, "end": "99"},
@@ -295,6 +295,17 @@ def test_a_group_mate_can_delete_a_comment_but_nobody_else(gw):
         w.rv.delete_annotation(SUE, task.id, a.id)
 
 
+def test_a_comment_can_be_about_the_whole_work(w: ReviewWorld):
+    task = w.task_for(UserParty(SUE), SAM)
+    for nothing_selected in ({}, {"quote": "", "start": "", "end": ""}):
+        a = w.rv.add_annotation(SUE, task.id, nothing_selected, "Clear overall.")
+        assert a.kind == WHOLE_WORK and a.selector == {}
+    assert [v.annotation.body for v in w.rv.workspace(SUE, task.id).annotations] == [
+        "Clear overall.",
+        "Clear overall.",
+    ]
+
+
 def test_pdf_work_cannot_be_annotated_yet(w: ReviewWorld):
     pdf_call = w.c.create_call(TINA, w.s.id, title="Paper", artifact_type="pdf", published=True)
     sub = w.c.submit(SAM, pdf_call.id, title="P", upload=Upload(content=b"%PDF-1.7\n%%EOF\n"))
@@ -304,6 +315,8 @@ def test_pdf_work_cannot_be_annotated_yet(w: ReviewWorld):
     assert not ws.annotatable and "application/pdf" in ws.artifact_html
     with pytest.raises(InvalidReview):
         w.rv.add_annotation(SUE, task.id, {"quote": "a", "start": "0", "end": "1"}, "x")
+    whole = w.rv.add_annotation(SUE, task.id, {}, "The argument holds.")  # about the whole PDF
+    assert whole.kind == WHOLE_WORK and w.rv.workspace(SUE, task.id).annotations
 
 
 def test_a_review_needs_no_rubric_to_carry_comments(w: ReviewWorld):

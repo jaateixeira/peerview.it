@@ -79,7 +79,7 @@ Consequences to watch:
 | Moodle Workshop is free and "good enough" | Win on setup time, UX, annotation, group reviews; show a side-by-side demo |
 | Long institutional sales cycles | Teacher-led adoption first; revenue target for year 1 stays modest |
 | Founder capacity (2 days a week) | Narrow scope; Claude Code for throughput; defer plugins and venues to year 2 |
-| Scope creep from "review anything" | One preset (education), two artifact types (text, PDF) in year 1 |
+| Scope creep from "review anything" | One preset (education), three artifact types (text, PDF, web pages; ADR 0022) in year 1 |
 | AGPL deters companies | Commercial licence as paid option |
 | Storage pricing earns too little | Gate at end of year 1: revisit limit, price, or add a paid institution option |
 | Hard self-hosting costs open-source goodwill and contributors; under AGPL anyone may publish an easy installer | Say openly that self-hosting is unsupported; compete on hosted convenience; keep the developer setup easy for contributors |

@@ -38,13 +38,16 @@ Status column:
 | **Token** | The random secret in a link. At least 128 bits, one purpose, revocable. | Core (share links), Planned (C, D) | | | key, password |
 | **Submission** | What a Party hands in to a Call. It is the **review unit**: one Submission is reviewed as a whole. | Core | `Submission` | (none) | work product, review object, review item, deliverable |
 | **Revision** | A numbered, immutable version of a Submission. Reviews and Annotations are pinned to one Revision. | Core | `Revision` | (none) | version (ambiguous with `version` on a Review) |
-| **Artifact** | The content of a Revision, of a type supplied by a plugin (text, PDF). | Core | `Artifact`, `ArtifactType` | (none) | attachment |
+| **Artifact** | The content of a Revision, of a type supplied by a plugin (text, PDF, web page). | Core | `Artifact`, `ArtifactType` | (none) | attachment |
+| **Web page** | An artifact type: a public page given by its address. Previewit checks it can reach it and keeps a record of what it found (title, description), not a copy; reviewers open the page itself and comment on the whole of it (ADR 0022). | Core | `WebPageArtifact` (`webpage`), `PageChecker`, `normalise_address` | (none) | link (a link is how Previewit sends a call or Invitation), URL in user-facing text (say *address*) |
 | **Review** | The reviewer Party's response to one Submission: answers to the Rubric plus Annotations. | Core | `Review` | (none) | feedback (that is what an author *receives*), evaluation |
 | **Reviewer** / **Author** | Two roles (above) and, per task, two *relations* a Party has to a Submission. The same Party can be author of one Submission and reviewer of another. | Core | `ReviewTask.reviewer`, `Submission.author` | (none) | grader, evaluator, student author |
 | **Guest reviewer** | A Reviewer who opened an Invitation without an account. Previewit makes a user with no email or password for that one Invitation; the link brings the guest back. After the review, the guest is invited to **join** (choose a password) and keeps the reviews (ADR 0020). Not the `guest` flag of a call or Submission view, which means read-only access through a Share link. | Core | `User.is_guest`, `InvitationsService.start_as_guest` | (none) | anonymous user, temporary account |
 | **Share link** | A link that gives access to one Call or Submission with minimal sign-up. The author is the sender; an Invitation is personal and bound to an email; a share link is not. | Core | `ShareLink` | (none) | invite (an invite adds a Member) |
 | **Preset** | A bundle of vocabulary, roles, rubric templates and defaults for a kind of organization. | Core | `Preset` | (Education) | mode, template (a template is a Rubric template) |
-| **Request a review** | The quick way to start: one page where a person adds a file and the reviewers' email addresses and sends it out. It makes the Review space, call, Submission, Round and Invitations in one step (ADR 0018). | Core | `QuickReviewService`, `/review/new` | (none) | wizard, quick start, upload form |
+| **Request a review** | The quick way to start: one page where a person adds a file, a web page's address or some text, and the reviewers' email addresses, and sends it out. It makes the Review space, call, Submission, Round and Invitations in one step (ADR 0018). | Core | `QuickReviewService`, `/review/new` | (none) | wizard, quick start, upload form |
+| **Prepared request** | A *Request a review* form filled in by an AI assistant through the MCP service and kept for 7 days under a secret link. Nothing is sent until the person opens it, checks it and sends it (ADR 0023). | Core | `PreparedRequest`, `PreparedRequestsService`, `/prepared/{token}` | (none) | draft (a draft is an unsubmitted Review) |
+| **MCP service** | Where AI assistants connect to Previewit, over the Model Context Protocol, at `/mcp`. Its one tool prepares a Prepared request (ADR 0023). | Core | `McpServer`, `prepare_review_request` | (none) | API, bot |
 | **General preset** | The preset used when a Review space is made by *Request a review*: it says *review space* and nothing from a school. | Core | `GENERAL` | (none) | default preset (Education stays the first preset) |
 
 **The three processes** are the way to explain Previewit. Each is a flow between the three roles:
@@ -79,7 +82,7 @@ An **Auditor** (Deferred) will audit the review process: read-only over reviews,
 | **Changeset size** | Size of a code change. | Deferred | | Code-review plugin, year 2. |
 | **Entry criteria** / **reviewability** | When a Submission may be reviewed. | Core (partial) | `Call.published`, `Call.closes_at` | A Call must be published, and a Submission needs at least one Revision. |
 | **Finding** | A single issue a reviewer raises. | Avoid as a type | | Use **Annotation** (located) or an **Answer** to a criterion (general). *Review item* is avoided for the same reason: it could mean either. |
-| **Annotation** | A comment pinned to a place in one Revision. The selector is defined by the artifact type (quote and offsets for text, page and rectangle for PDF). | Core (text), Planned (M5b, PDF) | `Annotation` | |
+| **Annotation** | A comment on one Revision: pinned to a place, with a selector defined by the artifact type (quote and offsets for text, page and rectangle for PDF), or about the whole work, with no selector (`kind = "whole"`, every artifact type, ADR 0022). | Core (text, whole work), Planned (M5b, PDF places) | `Annotation`, `WHOLE_WORK` | |
 
 ## 4. Standards and instruments (source section C)
 
