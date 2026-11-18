@@ -13,7 +13,7 @@ from previewit.domain.calls import Artifact
 class TextArtifact:
     key = "text"
     label = "Text"
-    input_kind: Literal["text", "file"] = "text"
+    input_kind: Literal["text", "file", "url"] = "text"
     accept = ""
     max_bytes = 400_000
     annotation_kind = "text"

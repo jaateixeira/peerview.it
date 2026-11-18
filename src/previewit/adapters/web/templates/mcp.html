@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="stack prose">
+  <h1>Previewit for AI assistants</h1>
+  <p class="lead">Your AI assistant can prepare a review request for you. You check it and send
+    it. The assistant never sends anything itself.</p>
+
+  <section class="card stack">
+    <h2>Connect your assistant</h2>
+    <p>Previewit offers an MCP service (Model Context Protocol) at this address:</p>
+    <p><code>{{ endpoint }}</code></p>
+    <p>In Claude Code, run:</p>
+    <pre><code>claude mcp add --transport http previewit {{ endpoint }}</code></pre>
+    <p>In other assistants, add a remote MCP server with this address (Streamable HTTP). No
+      account or key is needed.</p>
+  </section>
+
+  <section class="card stack">
+    <h2>What happens</h2>
+    <ol>
+      <li>You ask your assistant for feedback on a web page or a text. It suggests asking people
+        on Previewit and, if you agree, prepares the request: the work, the reviewers' email
+        addresses, a few words for them and a due date.</li>
+      <li>It gives you a link. Open it and sign in: you see the Request a review form, filled in.</li>
+      <li>Check everything and press <strong>Send it out</strong>. Only then are the reviewers
+        invited.</li>
+    </ol>
+    <p><small>What the assistant sends is kept on Previewit for 7 days at most, or until you send
+      the request. The link is the only way to it.</small></p>
+  </section>
+
+  <section class="card stack">
+    <h2>For developers</h2>
+    <p>One tool: <code>{{ tool.name }}</code>. Its inputs: {% for name in tool.inputSchema.properties %}<code>{{ name }}</code>{{ ", " if not loop.last }}{% endfor %}.
+      The service answers both the stateless protocol (2026-07-28) and the earlier handshake.
+      See <a href="https://modelcontextprotocol.io">modelcontextprotocol.io</a>.</p>
+  </section>
+</section>
+{% endblock %}

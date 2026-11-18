@@ -1,6 +1,9 @@
-{# The input a plugin asks for: a text box or a file picker. Needs `t` (the artifact type). #}
+{# The input a plugin asks for: a text box, a web address or a file picker. Needs `t` (the
+   artifact type). #}
 {% if t.input_kind == 'text' %}
 <label class="field">Your text <textarea name="text" rows="12" required></textarea></label>
+{% elif t.input_kind == 'url' %}
+{% with web_address = '' %}{% include "_web_address_field.html" %}{% endwith %}
 {% else %}
 <label class="field">File <input type="file" name="file" accept="{{ t.accept }}" required></label>
 {% endif %}

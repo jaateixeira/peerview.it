@@ -276,7 +276,10 @@ def test_a_mistyped_address_stops_everything_and_keeps_the_form():
 def test_nobody_to_ask_a_missing_file_and_a_missing_title_are_explained():
     _, client = organizer()
     assert "at least one" in send(client, {"emails": ""}).text
-    assert "Choose a file or paste" in send(client, {"text": "", "emails": "a@x.fi"}).text
+    assert (
+        "Choose a file, give the address of a web page or paste"
+        in send(client, {"text": "", "emails": "a@x.fi"}).text
+    )
     assert "title" in send(client, {"title": "", "emails": "a@x.fi"}).text.lower()
 
 

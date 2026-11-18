@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import secrets
 import uuid
 from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
@@ -26,6 +27,7 @@ from previewit.adapters.persistence.sql import (
     SqlUserRepository,
 )
 from previewit.adapters.persistence.sql_calls import SqlCallRepository
+from previewit.adapters.persistence.sql_prepared import SqlPreparedRequestRepository
 from previewit.adapters.persistence.sql_reviews import SqlReviewRepository
 from previewit.adapters.persistence.sql_rounds import SqlRoundRepository
 from previewit.adapters.persistence.sql_rubrics import SqlRubricRepository
@@ -36,19 +38,22 @@ from previewit.adapters.plugins import (
 )
 from previewit.adapters.settings import Settings, load_settings
 from previewit.adapters.web.app import build_app
+from previewit.adapters.web_pages import HttpPageChecker, RecentChecks
 from previewit.application.allocation import StrategyRegistry
-from previewit.application.artifacts import ArtifactRegistry
+from previewit.application.artifacts import ArtifactRegistry, PluginServices, connect_plugins
 from previewit.application.auth import AuthService
 from previewit.application.calls import CallsService
 from previewit.application.criteria import CriterionRegistry
 from previewit.application.invitations import InvitationsService
 from previewit.application.ports import Mailer
+from previewit.application.prepared_requests import PreparedRequestsService
 from previewit.application.quick_review import QuickReviewService
 from previewit.application.reviews import ReviewsService
 from previewit.application.rounds import RoundsService
 from previewit.application.rubrics import RubricsService
 from previewit.application.tenancy import TenancyService
 from previewit.application.verification import VerificationService
+from previewit.application.web_pages import PageChecker
 
 
 def create_app() -> FastAPI:
@@ -74,6 +79,8 @@ def create_app() -> FastAPI:
     providers = build_providers(settings)
     mailer = build_mailer(settings)
     artifact_types = discover_artifact_types()
+    pages = build_page_checker(settings)
+    connect_plugins(artifact_types, PluginServices(pages=pages))
     verification = VerificationService(
         users,
         SqlEmailTokenRepository(engine),
@@ -184,7 +191,20 @@ def create_app() -> FastAPI:
         invitations,
         quick,
         providers,
+        pages=pages,
+        prepared=PreparedRequestsService(
+            SqlPreparedRequestRepository(engine),
+            lambda: secrets.token_urlsafe(32),
+            lambda: datetime.now(UTC),
+        ),
+        version=_version(),
     )
+
+
+def build_page_checker(settings: Settings) -> PageChecker:
+    """Checks web pages before they go to reviewers (ADR 0022), remembering recent answers."""
+    agent = f"PreviewitPageCheck/1.0 (+{settings.origin})"
+    return RecentChecks(HttpPageChecker(user_agent=agent))
 
 
 def _version() -> str:

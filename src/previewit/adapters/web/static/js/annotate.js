@@ -1,5 +1,7 @@
 // Pins a comment to selected text: records the quote and where it starts and ends
-// (in characters) so the server can check it against the revision. No dependencies.
+// (in characters) so the server can check it against the revision. With nothing selected the
+// comment is about the whole work. No dependencies.
+const WHOLE = "To pin your comment to a place, select some text on the left. Otherwise it is about the whole work.";
 document.addEventListener("selectionchange", () => {
   const box = document.querySelector("[data-annotatable]");
   const quote = document.getElementById("comment-quote");
@@ -18,5 +20,13 @@ document.addEventListener("selectionchange", () => {
   document.getElementById("comment-start").value = start;
   document.getElementById("comment-end").value = start + Array.from(text).length;
   document.getElementById("comment-selected").textContent = "“" + text.slice(0, 200) + "”";
-  document.getElementById("comment-submit").disabled = false;
+  document.getElementById("comment-unpin").hidden = false;
+});
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("#comment-unpin")) return;
+  for (const id of ["comment-quote", "comment-start", "comment-end"]) {
+    document.getElementById(id).value = "";
+  }
+  document.getElementById("comment-selected").textContent = WHOLE;
+  event.target.closest("#comment-unpin").hidden = true;
 });

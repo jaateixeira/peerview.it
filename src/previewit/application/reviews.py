@@ -22,6 +22,7 @@ from previewit.domain.calls import Call, Revision, Submission
 from previewit.domain.identity import UserId
 from previewit.domain.party import GroupParty, Party, UserParty
 from previewit.domain.reviews import (
+    WHOLE_WORK,
     Annotation,
     AnnotationId,
     EditConflict,
@@ -211,18 +212,23 @@ class ReviewsService:
     def add_annotation(
         self, actor: UserId, task_id: TaskId, selector: Mapping[str, str], body: str
     ) -> Annotation:
+        """A comment pinned to a place (the selector), or about the whole work when nothing is
+        selected. Every kind of work takes comments on the whole of it."""
         access = self._access(actor, task_id, write=True)
         call = access.call
         artifact_type = self._artifacts.get(call.artifact_type)
-        if not artifact_type.annotation_kind:
-            raise InvalidReview("Comments cannot be pinned to this kind of work yet.")
         revision = self._calls.get_revision(access.task.submission_id, access.task.revision_number)
         if revision is None:
             raise NotFound
-        try:
-            normalised = artifact_type.check_selector(revision.artifact, selector)
-        except ArtifactError as e:
-            raise InvalidReview(str(e)) from None
+        kind, normalised = WHOLE_WORK, {}
+        if any(value.strip() for value in selector.values()):
+            if not artifact_type.annotation_kind:
+                raise InvalidReview("Comments cannot be pinned to this kind of work yet.")
+            try:
+                normalised = artifact_type.check_selector(revision.artifact, selector)
+            except ArtifactError as e:
+                raise InvalidReview(str(e)) from None
+            kind = artifact_type.annotation_kind
         text = clean_comment(body)
         review = self._repo.review_of_task(task_id)
         if review is None:  # the first thing written is a pinned comment: start the review
@@ -233,7 +239,7 @@ class ReviewsService:
             review.space_id,
             review.id,
             access.task.revision_number,
-            artifact_type.annotation_kind,
+            kind,
             normalised,
             text,
             actor,

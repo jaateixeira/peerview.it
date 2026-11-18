@@ -14,7 +14,7 @@ from previewit.domain.calls import Artifact
 class PdfArtifact:
     key = "pdf"
     label = "PDF"
-    input_kind: Literal["text", "file"] = "file"
+    input_kind: Literal["text", "file", "url"] = "file"
     accept = ".pdf,application/pdf"
     max_bytes = 10_000_000
     annotation_kind = ""  # pinned comments on PDF pages come in a later release

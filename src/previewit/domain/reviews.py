@@ -64,6 +64,9 @@ class ReviewEdit:
     at: datetime
 
 
+WHOLE_WORK = "whole"  # the kind of a comment about the whole work, not pinned to a place
+
+
 @dataclass(frozen=True)
 class Annotation:
     id: AnnotationId
@@ -71,8 +74,8 @@ class Annotation:
     space_id: SpaceId
     review_id: ReviewId
     revision_number: int  # annotations are pinned to a revision, so they never drift
-    kind: str  # the artifact type's annotation kind, e.g. "text"
-    selector: dict[str, str]  # where, in the artifact type's own terms
+    kind: str  # the artifact type's annotation kind, e.g. "text", or WHOLE_WORK
+    selector: dict[str, str]  # where, in the artifact type's own terms; {} for the whole work
     body: str
     created_by: UserId
     created_at: datetime

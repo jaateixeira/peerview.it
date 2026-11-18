@@ -14,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
 
 from previewit.adapters.auth.base import ExternalProvider
+from previewit.adapters.mcp import McpServer
 from previewit.adapters.settings import Settings
 from previewit.adapters.web import local_time
 from previewit.adapters.web.auth_routes import build_auth_router
@@ -21,6 +22,9 @@ from previewit.adapters.web.calls_routes import build_calls_router
 from previewit.adapters.web.docs_routes import build_docs_router
 from previewit.adapters.web.invitations_routes import build_invitations_router
 from previewit.adapters.web.kit import WebKit
+from previewit.adapters.web.limits import RateLimiter
+from previewit.adapters.web.mcp_routes import build_mcp_router
+from previewit.adapters.web.pages_routes import build_pages_router
 from previewit.adapters.web.quick_review_routes import build_quick_review_router
 from previewit.adapters.web.reviews_routes import build_reviews_router
 from previewit.adapters.web.rounds_routes import build_rounds_router
@@ -34,6 +38,7 @@ from previewit.application.invitations import (
     InvitationsService,
     WrongEmail,
 )
+from previewit.application.prepared_requests import PreparedRequestsService
 from previewit.application.quick_review import QuickReviewService
 from previewit.application.reviews import ReviewsService
 from previewit.application.rounds import RoundsService
@@ -46,6 +51,7 @@ from previewit.application.tenancy import (
     VerificationRequired,
 )
 from previewit.application.verification import VerificationService
+from previewit.application.web_pages import PageChecker
 from previewit.domain.identity import Provider
 
 HERE = Path(__file__).parent
@@ -66,6 +72,10 @@ def build_app(
     invitations: InvitationsService,
     quick: QuickReviewService,
     providers: Mapping[Provider, ExternalProvider],
+    *,
+    pages: PageChecker,
+    prepared: PreparedRequestsService,
+    version: str = "dev",
 ) -> FastAPI:
     app = FastAPI(title="Previewit", docs_url=None, redoc_url=None)
     templates = Jinja2Templates(directory=HERE / "templates")
@@ -100,7 +110,8 @@ def build_app(
     @app.middleware("http")
     async def keep_tokens_out_of_referrers(request: Request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith(("/s/", "/join/", "/i/")):  # the secret is in the address
+        secret_in_path = ("/s/", "/join/", "/i/", "/prepared/")
+        if request.url.path.startswith(secret_in_path):
             response.headers["Referrer-Policy"] = "same-origin"  # never to other sites
         return response
 
@@ -147,7 +158,19 @@ def build_app(
         )
     )
     app.include_router(build_reviews_router(reviews=reviews, kit=kit))
-    app.include_router(build_quick_review_router(quick=quick, kit=kit))
+    app.include_router(
+        build_quick_review_router(quick=quick, kit=kit, pages=pages, prepared=prepared)
+    )
+    mcp = McpServer(
+        prepared=prepared,
+        origin=settings.origin,
+        version=version,
+        allow=RateLimiter(20, 600).allow,  # prepared requests per client address
+    )
+    app.include_router(build_mcp_router(server=mcp, kit=kit))
+    app.include_router(
+        build_pages_router(pages=pages, kit=kit, limiter=RateLimiter(30, 60))  # per person
+    )
 
     def error_page(request: Request, status: int, title: str, message: str):
         return kit.render(

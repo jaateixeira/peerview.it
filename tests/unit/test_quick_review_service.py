@@ -15,8 +15,10 @@ from previewit.application.quick_review import (
 from previewit.application.tenancy import VerificationRequired
 from previewit.domain.identity import Email, User, UserId
 from previewit.domain.tenancy import OrgRole, Role
+from previewit.plugins.webpage import WebPageArtifact
 from tests.unit.test_invitations_service import InviteWorld, Outbox
 from tests.unit.test_tenancy_service import ALICE
+from tests.unit.test_webpage_plugin import ESSAY, FakePageChecker
 
 QUINN = UserId("quinn")  # signed up a minute ago: no organization, verified email
 PDF = b"%PDF-1.4\n%fake but starts like a PDF\n"
@@ -24,8 +26,11 @@ ANA, BO, CY = (Email(f"{n}@x.fi") for n in ("ana", "bo", "cy"))
 
 
 class QuickWorld(InviteWorld):
-    def __init__(self, *args, quinn_verified=True, **kw):
+    def __init__(self, *args, quinn_verified=True, web_pages=True, **kw):
         super().__init__(*args, **kw)
+        self.pages = FakePageChecker({ESSAY.address: ESSAY})
+        if web_pages:
+            self.c._artifacts.register(WebPageArtifact(self.pages))
         quinn = User(QUINN, "Quinn", Email("quinn@x.fi"), quinn_verified, frozenset(), False)
         self.users.add_user(quinn, None)
         self.q = QuickReviewService(
@@ -76,6 +81,30 @@ def test_files_that_are_neither_pdf_nor_text_are_refused_before_anything_is_made
         with pytest.raises(ArtifactError):
             w.q.request_review(QUINN, w.request(upload=Upload(content=bad, filename="x.docx")))
     assert w.t.my_organizations(QUINN) == []
+
+
+def test_a_web_page_is_checked_and_named_after_its_title(w: QuickWorld):
+    page = Upload(url="example.org/essay")
+    done = w.q.request_review(QUINN, w.request(title="", upload=page, send_emails=False))
+    assert w.c.call_view(QUINN, done.call_id).call.artifact_type == "webpage"
+    assert w.t.space_view(QUINN, done.space_id).space.name == ESSAY.title
+    assert set(w.pages.checked) == {ESSAY.address}
+    mine = w.q.request_review(QUINN, w.request(title="Read this", upload=page, send_emails=False))
+    assert w.t.space_view(QUINN, mine.space_id).space.name == "Read this"  # a title given wins
+
+
+def test_a_page_reviewers_could_not_open_is_refused_before_anything_is_made(w: QuickWorld):
+    w.pages.pages["https://example.org/private"] = "The page asks for a login."
+    for address in ("https://example.org/private", "http://10.1.2.3/", "nowhere.example/x"):
+        with pytest.raises(ArtifactError):
+            w.q.request_review(QUINN, w.request(upload=Upload(url=address), send_emails=False))
+    assert w.t.my_organizations(QUINN) == []
+
+
+def test_without_the_web_page_type_an_address_is_refused():
+    w = QuickWorld(web_pages=False)
+    with pytest.raises(ArtifactError, match="does not review web pages"):
+        w.q.request_review(QUINN, w.request(upload=Upload(url=ESSAY.address), send_emails=False))
 
 
 def test_previewit_mails_every_reviewer_with_the_cover_letter(w: QuickWorld):

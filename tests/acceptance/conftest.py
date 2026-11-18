@@ -5,8 +5,10 @@ import time
 
 import pytest
 import uvicorn
+from tests.unit.test_webpage_plugin import FakePageChecker
 
 import previewit.bootstrap as bootstrap
+from previewit.application.web_pages import PageCheck
 from previewit.bootstrap import create_app
 
 
@@ -26,6 +28,22 @@ class Outbox:
 
 OUTBOX = Outbox()
 
+# Web pages the scenarios review (ADR 0022): the test server never leaves this machine.
+PAGES = FakePageChecker(
+    {
+        "https://example.org/portfolio": PageCheck(
+            "https://example.org/portfolio",
+            "https://example.org/portfolio",
+            "Maya's design portfolio",
+            "Six projects from 2026.",
+            "Maya Maker",
+            "text/html",
+        ),
+        "https://example.org/private": "The page asks for a login. Reviewers need a page anyone "
+        "can open: use a public address.",
+    }
+)
+
 
 @pytest.fixture(scope="session")
 def outbox() -> Outbox:
@@ -42,6 +60,7 @@ def _free_port() -> int:
 def base_url():
     port = _free_port()
     bootstrap.build_mailer = lambda _settings: OUTBOX  # type: ignore[assignment]
+    bootstrap.build_page_checker = lambda _settings: PAGES  # type: ignore[assignment]
     # The app checks the Origin header of form posts against its own base URL.
     os.environ["PREVIEWIT_BASE_URL"] = f"http://127.0.0.1:{port}"
     # The same server under a second name, to show that an alias leads to the main address.
