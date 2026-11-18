@@ -193,7 +193,7 @@ Previewit sends verification mails and invitations over SMTP only. Use a relay t
 
 ## 9. Backup
 
-Submitted text and PDFs are stored **in PostgreSQL** (table `revisions`), so a database backup is the whole backup: dump regularly and test a restore. Valkey needs no backup; it only holds copies. Keep the configuration and the secret key with the dumps: with a new key, everyone is signed out.
+Submitted text and PDFs are stored **in PostgreSQL** (table `revisions`), so a database backup is the whole backup. The table `prepared_requests` also holds files that visitors chose before signing in, for one hour (at most 200 at a time, 2 GB at the very most); the running site deletes them when they expire (ADR 0024). Dump regularly and test a restore. Valkey needs no backup; it only holds copies. Keep the configuration and the secret key with the dumps: with a new key, everyone is signed out.
 
 ```bash
 sudo -u postgres pg_dump --format=custom previewit > previewit-$(date +%F).dump

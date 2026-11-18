@@ -39,7 +39,7 @@ An auditor, who checks how reviews were done, is planned for later.
 
 ### The quickest start: Request a review
 
-Press **Request a review** on the home page. Sign in with Google, Apple or your email, and one page asks for three things:
+Press **Request a review** on the home page. One page asks for three things. You can fill it in before you have an account: when you press **Send it out**, Previewit keeps your request and asks you to log in or create an account, then shows it to you again, as you left it, to send. A file you chose is kept for one hour, then deleted. (ADR 0024)
 
 1. **The work.** Choose a PDF or a text file (`.txt`, `.md`), give the address of a web page, or paste the text. The title comes from the file name or the page's title if you leave it empty. Other kinds of file are not reviewed yet: save them as a PDF.
 

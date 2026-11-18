@@ -45,10 +45,10 @@ def mails_to(h: Harness, address: str) -> list[tuple[str, str, str]]:
 # -- the way in ----------------------------------------------------------------------------
 
 
-def test_a_visitor_is_sent_to_sign_in_and_comes_back_to_the_page():
+def test_a_visitor_fills_it_in_first_and_can_sign_in_from_it():  # ADR 0024
     client = make_harness().client
     r = client.get(NEW)
-    assert r.status_code == 303 and r.headers["location"] == "/login?next=%2Freview%2Fnew"
+    assert r.status_code == 200 and 'href="/login?next=%2Freview%2Fnew">Log in' in r.text
     assert "Continue with" not in client.get("/login?next=%2Freview%2Fnew").text  # none configured
 
 

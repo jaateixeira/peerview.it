@@ -3,6 +3,9 @@
 <section class="card auth-card">
   <h1>Create your account</h1>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  {% if next.startswith('/prepared/') %}
+  <p class="notice" role="status">Your review request is saved. Create your account to check it and send it.</p>
+  {% endif %}
   {% include "_providers.html" %}
   <form method="post" action="/signup" hx-boost="false" class="form">
     <input type="hidden" name="csrf" value="{{ csrf_token }}">

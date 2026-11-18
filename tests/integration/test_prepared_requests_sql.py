@@ -12,9 +12,13 @@ class SqlRepo(SqlPreparedRequestRepository):
     """The SQL store, with the two test hooks the suite uses."""
 
     pretend_count: int | None = None
+    pretend_files: int | None = None
 
     def count(self) -> int:
         return self.pretend_count if self.pretend_count is not None else super().count()
+
+    def count_files(self) -> int:
+        return self.pretend_files if self.pretend_files is not None else super().count_files()
 
     def raw_keys(self) -> list[str]:
         from sqlalchemy import select
