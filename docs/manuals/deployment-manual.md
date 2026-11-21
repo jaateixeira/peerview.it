@@ -17,7 +17,7 @@
 | Cache | Valkey (recommended, optional): keeps the signed-in user close at hand. Required if you run more than one worker. |
 | Front | nginx with TLS, or a tunnel that ends TLS and forwards to `127.0.0.1:8000` |
 | Email | An SMTP relay. The application does not start on an https address without one. |
-| Outbound web | DNS and outgoing HTTP and HTTPS (ports 80 and 443) to the internet: Previewit checks web pages before they go to reviewers (ADR 0022). It ignores proxy settings in the environment and refuses private addresses itself. |
+| Outbound web | DNS and outgoing HTTP and HTTPS (ports 80 and 443) to the internet: peerview.it checks web pages before they go to reviewers (ADR 0022). It ignores proxy settings in the environment and refuses private addresses itself. |
 | Hardware | Provisional: 4 CPU cores, 8 GB RAM, SSD storage. No load tests exist yet; figures will be set in M7. |
 | Skills | Linux administration, systemd, nginx and TLS, PostgreSQL backup and restore, DNS, security patching |
 
@@ -29,7 +29,7 @@ flowchart LR
     M(["Moodle, LTI 1.3 (M9)"])
     subgraph srv ["Debian stable server"]
         N["nginx or tunnel: TLS"]
-        A["previewit: uvicorn under systemd, 127.0.0.1:8000"]
+        A["peerview: uvicorn under systemd, 127.0.0.1:8000"]
         P[("PostgreSQL: data and uploaded files")]
         V[("Valkey: cached users, 60 s")]
     end
@@ -51,12 +51,12 @@ Valkey is a copy, never the source of truth. If it is down the site is slower, n
 ```bash
 sudo apt-get update
 sudo apt-get install -y python3 git curl ca-certificates postgresql valkey
-sudo adduser --system --group --home /opt/previewit previewit
-sudo -u previewit -H sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
-sudo -u previewit -H git clone https://github.com/jaateixeira/prreview.it /opt/previewit/app
-cd /opt/previewit/app
-sudo -u previewit -H env UV_PYTHON_PREFERENCE=only-system \
-  /opt/previewit/.local/bin/uv sync --frozen --no-dev --extra postgres --extra valkey
+sudo adduser --system --group --home /opt/peerview peerview
+sudo -u peerview -H sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'
+sudo -u peerview -H git clone https://github.com/jaateixeira/peerview.it /opt/peerview/app
+cd /opt/peerview/app
+sudo -u peerview -H env UV_PYTHON_PREFERENCE=only-system \
+  /opt/peerview/.local/bin/uv sync --frozen --no-dev --extra postgres --extra valkey
 ```
 
 `--frozen` installs exactly what `uv.lock` pins; `--no-dev` leaves out test tools. Add `--extra saml` for HAKA (needs `xmlsec1` from apt). If `apt` has no `valkey` package on your release, use another Redis-compatible server, or leave the cache out and run one worker. Bind it to `127.0.0.1` and set a password if anything else can reach it.
@@ -64,19 +64,19 @@ sudo -u previewit -H env UV_PYTHON_PREFERENCE=only-system \
 ## 4. Database
 
 ```bash
-sudo -u postgres createuser --pwprompt previewit
-sudo -u postgres createdb --owner previewit previewit
+sudo -u postgres createuser --pwprompt peerview
+sudo -u postgres createdb --owner peerview peerview
 ```
 
 ## 5. Configure
 
-Settings come from a TOML file and from `PREVIEWIT_*` environment variables; a variable overrides the file. The file is read from `PREVIEWIT_CONFIG`, else `./previewit.toml`, else `/etc/previewit/previewit.toml`.
+Settings come from a TOML file and from `PEERVIEW_*` environment variables; a variable overrides the file. The file is read from `PEERVIEW_CONFIG`, else `./peerview.toml`, else `/etc/peerview/peerview.toml`.
 
 ```bash
-sudo install -d -o previewit -g previewit -m 700 /etc/previewit
-sudo install -o previewit -g previewit -m 600 previewit.example.toml /etc/previewit/previewit.toml
-openssl rand -hex 32 | sudo install -o previewit -g previewit -m 600 /dev/stdin /etc/previewit/secret.key
-sudoedit /etc/previewit/previewit.toml
+sudo install -d -o peerview -g peerview -m 700 /etc/peerview
+sudo install -o peerview -g peerview -m 600 peerview.example.toml /etc/peerview/peerview.toml
+openssl rand -hex 32 | sudo install -o peerview -g peerview -m 600 /dev/stdin /etc/peerview/secret.key
+sudoedit /etc/peerview/peerview.toml
 ```
 
 Set at least these:
@@ -88,7 +88,7 @@ secret_key_file = "secret.key"
 # aliases = ["https://www.review.example.org"]   # other names of this site (ADR 0021)
 
 [database]
-url = "postgresql+psycopg://previewit:PASSWORD@localhost/previewit"
+url = "postgresql+psycopg://peerview:PASSWORD@localhost/peerview"
 
 [mail]
 smtp_host = "smtp.example.org"
@@ -96,7 +96,7 @@ smtp_port = 587
 smtp_user = "…"
 smtp_password = "…"
 smtp_security = "starttls"                 # or "ssl" for port 465
-from = "Previewit <no-reply@review.example.org>"
+from = "peerview.it <no-reply@review.example.org>"
 
 [cache]
 url = "valkey://127.0.0.1:6379/0"
@@ -111,23 +111,23 @@ url = "valkey://127.0.0.1:6379/0"
 | `[seller]` | Who runs and sells the site, shown on `/terms`, `/privacy`, `/contact` (ADR 0026): `legal_name`, `trading_name`, `business_id`, `address`, `email`, `phone`, `privacy_email`, `processors` |
 | `[paddle]` | Selling credit (ADR 0026): `environment` (`sandbox` or `production`), `client_token`, `webhook_secret` or `webhook_secret_file`, `packs` (Paddle price id = whole euros). See section 8b |
 
-The file holds secrets: keep it readable by the `previewit` account only (the server warns if group or others can read it). Typos in keys, sections or action names stop the server at start and name the setting. Forms are checked against `base_url`, so the site lives at that one address. List every other name that reaches the server under `aliases`: visitors who arrive there are sent to the same page at `base_url`. Each name needs DNS, a certificate and a place in the proxy (`server_name`) or tunnel.
+The file holds secrets: keep it readable by the `peerview` account only (the server warns if group or others can read it). Typos in keys, sections or action names stop the server at start and name the setting. Forms are checked against `base_url`, so the site lives at that one address. List every other name that reaches the server under `aliases`: visitors who arrive there are sent to the same page at `base_url`. Each name needs DNS, a certificate and a place in the proxy (`server_name`) or tunnel.
 
 ## 6. Run
 
-`/etc/systemd/system/previewit.service`:
+`/etc/systemd/system/peerview.service`:
 
 ```ini
 [Unit]
-Description=Previewit
+Description=peerview.it
 After=network.target postgresql.service valkey.service
 
 [Service]
-User=previewit
-Group=previewit
-WorkingDirectory=/opt/previewit/app
-ExecStartPre=/opt/previewit/app/.venv/bin/python -c "import os; from previewit.adapters.settings import load_settings; from previewit.adapters.persistence.migrate import upgrade; upgrade(load_settings(os.environ).database_url)"
-ExecStart=/opt/previewit/app/.venv/bin/uvicorn previewit.bootstrap:create_app --factory --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips 127.0.0.1
+User=peerview
+Group=peerview
+WorkingDirectory=/opt/peerview/app
+ExecStartPre=/opt/peerview/app/.venv/bin/python -c "import os; from peerview.adapters.settings import load_settings; from peerview.adapters.persistence.migrate import upgrade; upgrade(load_settings(os.environ).database_url)"
+ExecStart=/opt/peerview/app/.venv/bin/uvicorn peerview.bootstrap:create_app --factory --host 127.0.0.1 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips 127.0.0.1
 Restart=on-failure
 NoNewPrivileges=true
 PrivateTmp=true
@@ -141,14 +141,14 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now previewit
+sudo systemctl enable --now peerview
 curl -s http://127.0.0.1:8000/healthz    # prints: ok
-journalctl -u previewit -n 50            # if it does not
+journalctl -u peerview -n 50            # if it does not
 ```
 
-**Logs and console.** On start the service prints a summary (address, database kind, cache, mail, login methods, artifact types, policy; never a secret). Logs go to stderr, so `journalctl -u previewit -f` shows them. For debugging set `[logging] level = "DEBUG"`, or `TRACE` to see every cache hit and miss, and restart.
+**Logs and console.** On start the service prints a summary (address, database kind, cache, mail, login methods, artifact types, policy; never a secret). Logs go to stderr, so `journalctl -u peerview -f` shows them. For debugging set `[logging] level = "DEBUG"`, or `TRACE` to see every cache hit and miss, and restart.
 
-**A form is refused** ("Form refused" page, HTTP 403). The page says why, and the log has a line `Form refused on <path>: <reason>` (`journalctl -u previewit | grep "Form refused"`). The usual causes:
+**A form is refused** ("Form refused" page, HTTP 403). The page says why, and the log has a line `Form refused on <path>: <reason>` (`journalctl -u peerview | grep "Form refused"`). The usual causes:
 
 | The page says | Cause | Fix |
 |---|---|---|
@@ -156,11 +156,11 @@ journalctl -u previewit -n 50            # if it does not
 | did not send the form cookie | Cookies blocked, or an https `base_url` reached over plain http | Allow cookies; reach the site over https |
 | out of date | The page was opened before the browser's form cookie was renewed | Reload the page |
 
-A development copy started with a production `base_url` (say, `make run` with `previewit.toml` from the server) refuses every form at `http://localhost:8000`: set `PREVIEWIT_BASE_URL=http://localhost:8000` for development.
+A development copy started with a production `base_url` (say, `make run` with `peerview.toml` from the server) refuses every form at `http://localhost:8000`: set `PEERVIEW_BASE_URL=http://localhost:8000` for development.
 
 ## 7. Front: TLS and reverse proxy
 
-**nginx.** `/etc/nginx/sites-available/previewit` (link it into `sites-enabled`):
+**nginx.** `/etc/nginx/sites-available/peerview` (link it into `sites-enabled`):
 
 ```nginx
 server {
@@ -202,15 +202,15 @@ location = /mcp {
 
 ## 8. Outgoing email
 
-Previewit sends verification mails and invitations over SMTP only. Use a relay that signs for your domain, and publish its SPF, DKIM and DMARC records before the first invitation. Send yourself an invitation and check that the headers say `spf=pass` and `dkim=pass`.
+peerview.it sends verification mails and invitations over SMTP only. Use a relay that signs for your domain, and publish its SPF, DKIM and DMARC records before the first invitation. Send yourself an invitation and check that the headers say `spf=pass` and `dkim=pass`.
 
 ## 8a. AI reviews and the free models
 
-People can ask AI models to review their work (ADR 0025). The paid models run at their own services with the person's key; Previewit only passes the key on, for one request, and never stores it. The free models run on **your own** [Ollama](https://ollama.com) server. Without one, people see only the paid models.
+People can ask AI models to review their work (ADR 0025). The paid models run at their own services with the person's key; peerview.it only passes the key on, for one request, and never stores it. The free models run on **your own** [Ollama](https://ollama.com) server. Without one, people see only the paid models.
 
-Previewit's hosted site uses an AMD BC-250 board with 16 GB of shared memory. Small models (7 to 12 billion parameters) fit; one review of a short essay takes a few minutes. Previewit sends the free server one review at a time.
+peerview.it's hosted site uses an AMD BC-250 board with 16 GB of shared memory. Small models (7 to 12 billion parameters) fit; one review of a short essay takes a few minutes. peerview.it sends the free server one review at a time.
 
-On the model server (Debian, on the same private network as Previewit):
+On the model server (Debian, on the same private network as peerview.it):
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
@@ -219,7 +219,7 @@ sudo systemctl restart ollama
 ollama pull qwen3:8b              # and any others; embedding models are never offered
 ```
 
-Let only the Previewit server reach port 11434 (a firewall rule or a private network): Ollama has no login. Then in `previewit.toml`:
+Let only the peerview.it server reach port 11434 (a firewall rule or a private network): Ollama has no login. Then in `peerview.toml`:
 
 ```toml
 [ai]
@@ -230,35 +230,39 @@ local_context = 8192                  # raise it if the board has memory to spar
 # local_models = ["qwen3:8b"]         # offer only these
 ```
 
-Previewit looks up the installed models every five minutes; if the server is off, the free models are simply not offered and the log says so once. Reviews are written in the background and survive nothing: after a restart, free reviews are queued again and keyed ones ask the person to try again. Free reviews are limited to ten a person a day.
+peerview.it looks up the installed models every five minutes; if the server is off, the free models are simply not offered and the log says so once. Reviews are written in the background and survive nothing: after a restart, free reviews are queued again and keyed ones ask the person to try again. Free reviews are limited to ten a person a day.
 
-The prices of the paid models are in `src/previewit/adapters/ai/models.toml`, with the date each was checked. They change often: check them every month. Set `enabled = false` to switch AI reviews off.
+The prices of the paid models are in `src/peerview/adapters/ai/models.toml`, with the date each was checked. They change often: check them every month. Set `enabled = false` to switch AI reviews off.
 
 ## 8b. Selling credit through Paddle
 
 Paddle sells credit as merchant of record (ADR 0026); the step-by-step setup, sandbox first, is in [`docs/business/paddle-application.md`](../business/paddle-application.md). On the server:
 
-- Paddle posts signed notifications to `https://<your site>/paddle/webhook`. The proxy must pass `POST` there with the body untouched; Previewit checks the signature against the raw bytes.
-- The webhook secret and Previewit's own model keys are secrets: put them in files readable by the `previewit` account only (`webhook_secret_file`, `[ai] keys_file`, `chmod 600`). The keys file is TOML, one line per service: `anthropic = "sk-ant-…"`. A service without a key there can still be used with the person's own key.
+- Paddle posts signed notifications to `https://<your site>/paddle/webhook`. The proxy must pass `POST` there with the body untouched; peerview.it checks the signature against the raw bytes.
+- The webhook secret and peerview.it's own model keys are secrets: put them in files readable by the `peerview` account only (`webhook_secret_file`, `[ai] keys_file`, `chmod 600`). The keys file is TOML, one line per service: `anthropic = "sk-ant-…"`. A service without a key there can still be used with the person's own key.
 - Without `[paddle]` the site sells nothing: the Pricing page says credit opens soon.
+
+## 8c. A server installed before the rename
+
+A server set up under the product's old name keeps working, but the systemd unit must name the new Python package when you deploy this version. The commands are in [ADR 0027](../adr/0027-brand-peerview-it.md#moving-a-running-server).
 
 ## 9. Backup
 
 Submitted text and PDFs are stored **in PostgreSQL** (table `revisions`), so a database backup is the whole backup. AI reviews are in `ai_reviews`; no key is stored anywhere. Credit is in `credit_entries`; Paddle keeps the payments themselves. The table `prepared_requests` also holds files that visitors chose before signing in, for one hour (at most 200 at a time, 2 GB at the very most); the running site deletes them when they expire (ADR 0024). Dump regularly and test a restore. Valkey needs no backup; it only holds copies. Keep the configuration and the secret key with the dumps: with a new key, everyone is signed out.
 
 ```bash
-sudo -u postgres pg_dump --format=custom previewit > previewit-$(date +%F).dump
-sudo -u postgres pg_restore --clean --dbname previewit previewit-2026-11-15.dump
+sudo -u postgres pg_dump --format=custom peerview > peerview-$(date +%F).dump
+sudo -u postgres pg_restore --clean --dbname peerview peerview-2026-11-15.dump
 ```
 
 ## 10. Update
 
 ```bash
-cd /opt/previewit/app
-sudo -u previewit -H git pull --ff-only
-sudo -u previewit -H env UV_PYTHON_PREFERENCE=only-system \
-  /opt/previewit/.local/bin/uv sync --frozen --no-dev --extra postgres --extra valkey
-sudo systemctl restart previewit         # migrates, then starts
+cd /opt/peerview/app
+sudo -u peerview -H git pull --ff-only
+sudo -u peerview -H env UV_PYTHON_PREFERENCE=only-system \
+  /opt/peerview/.local/bin/uv sync --frozen --no-dev --extra postgres --extra valkey
+sudo systemctl restart peerview         # migrates, then starts
 ```
 
 Take a dump first. Read the release notes; the plugin API is unstable until version 0.2.
@@ -273,4 +277,4 @@ Take a dump first. Read the release notes; the plugin API is unstable until vers
 
 ## 12. Licence duties
 
-Previewit is AGPL-3.0-or-later. If you run a modified version for others over a network, you must offer them your source. The page footer links to `SOURCE_URL` in `src/previewit/adapters/web/app.py`; point it at your own repository if you change the code.
+peerview.it is AGPL-3.0-or-later. If you run a modified version for others over a network, you must offer them your source. The page footer links to `SOURCE_URL` in `src/peerview/adapters/web/app.py`; point it at your own repository if you change the code.

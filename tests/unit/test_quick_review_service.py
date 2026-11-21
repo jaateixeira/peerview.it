@@ -5,17 +5,17 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from previewit.application.artifacts import ArtifactError, Upload
-from previewit.application.ports import MailError
-from previewit.application.quick_review import (
+from peerview.application.artifacts import ArtifactError, Upload
+from peerview.application.ports import MailError
+from peerview.application.quick_review import (
     InvalidReviewRequest,
     QuickReviewService,
     ReviewRequest,
 )
-from previewit.application.tenancy import VerificationRequired
-from previewit.domain.identity import Email, User, UserId
-from previewit.domain.tenancy import OrgRole, Role
-from previewit.plugins.webpage import WebPageArtifact
+from peerview.application.tenancy import VerificationRequired
+from peerview.domain.identity import Email, User, UserId
+from peerview.domain.tenancy import OrgRole, Role
+from peerview.plugins.webpage import WebPageArtifact
 from tests.unit.test_invitations_service import InviteWorld, Outbox
 from tests.unit.test_tenancy_service import ALICE
 from tests.unit.test_webpage_plugin import ESSAY, FakePageChecker
@@ -107,7 +107,7 @@ def test_without_the_web_page_type_an_address_is_refused():
         w.q.request_review(QUINN, w.request(upload=Upload(url=ESSAY.address), send_emails=False))
 
 
-def test_previewit_mails_every_reviewer_with_the_cover_letter(w: QuickWorld):
+def test_peerview_mails_every_reviewer_with_the_cover_letter(w: QuickWorld):
     w.users.mark_email_verified(QUINN, Email("quinn@x.fi"))
     done = w.q.request_review(QUINN, w.request(cover_letter="Please be honest."))
     assert [i.sent for i in done.invites] == [True, True]

@@ -100,7 +100,7 @@ def test_resend_requires_login():
 def test_a_failing_mail_server_does_not_block_signup():
     h = make_harness()
 
-    from previewit.application.ports import MailError
+    from peerview.application.ports import MailError
 
     def fail(to: str, subject: str, body: str) -> None:
         raise MailError("smtp down")

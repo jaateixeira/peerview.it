@@ -2,14 +2,14 @@ from itertools import count
 
 import pytest
 
-from previewit.adapters.persistence.memory import InMemoryUserRepository
-from previewit.application.auth import (
+from peerview.adapters.persistence.memory import InMemoryUserRepository
+from peerview.application.auth import (
     AuthService,
     EmailTaken,
     InvalidCredentials,
     WeakPassword,
 )
-from previewit.domain.identity import Email, ExternalClaims, InvalidEmail, Provider
+from peerview.domain.identity import Email, ExternalClaims, InvalidEmail, Provider
 
 
 class FakeHasher:

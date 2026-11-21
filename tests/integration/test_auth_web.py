@@ -1,7 +1,7 @@
 from urllib.parse import parse_qs, urlparse
 
-from previewit.adapters.auth.haka import HakaConfig, HakaProvider
-from previewit.domain.identity import Provider
+from peerview.adapters.auth.haka import HakaConfig, HakaProvider
+from peerview.domain.identity import Provider
 from tests.integration.web_fakes import FakeProvider, csrf_token, make_client
 
 PASSWORD = "correct horse battery"
@@ -130,7 +130,7 @@ def test_posts_from_another_origin_are_refused():
     assert r.status_code == 403
 
 
-def test_a_page_opened_at_another_address_is_told_where_previewit_runs():
+def test_a_page_opened_at_another_address_is_told_where_peerview_runs():
     client, _ = make_client()
     token = csrf_token(client, "/login")
     r = client.post(
@@ -140,7 +140,7 @@ def test_a_page_opened_at_another_address_is_told_where_previewit_runs():
     )
     assert r.status_code == 403
     assert "This page was opened at https://www.peerview.it" in r.text
-    assert "Previewit's address is http://testserver" in r.text
+    assert "peerview.it's address is http://testserver" in r.text
     assert 'href="http://testserver/"' in r.text
 
 
@@ -149,7 +149,7 @@ def test_each_refusal_says_what_went_wrong():
     form = {"email": "a@x.fi", "password": PASSWORD}
     no_cookie = client.post("/login", data={**form, "csrf": "anything"})
     assert no_cookie.status_code == 403
-    assert "did not send Previewit's form cookie" in no_cookie.text
+    assert "did not send peerview.it's form cookie" in no_cookie.text
     csrf_token(client, "/login")
     stale = client.post("/login", data={**form, "csrf": "from-an-older-page"})
     assert stale.status_code == 403 and "This page was out of date" in stale.text

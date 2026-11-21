@@ -2,7 +2,7 @@ import dataclasses
 
 import pytest
 
-from previewit.domain.party import GroupParty, Party, UserParty
+from peerview.domain.party import GroupParty, Party, UserParty
 
 
 def test_equal_ids_make_equal_parties():

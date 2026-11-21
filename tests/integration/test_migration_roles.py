@@ -2,7 +2,7 @@
 
 from sqlalchemy import create_engine, inspect, text
 
-from previewit.adapters.persistence.migrate import downgrade, upgrade
+from peerview.adapters.persistence.migrate import downgrade, upgrade
 
 
 def _roles(engine, table: str, key: str = "user_id") -> dict[str, str]:

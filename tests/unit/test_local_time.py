@@ -7,7 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from starlette.requests import Request
 
-from previewit.adapters.web.local_time import (
+from peerview.adapters.web.local_time import (
     BadTime,
     parse_day_time,
     parse_local,
@@ -66,7 +66,7 @@ def test_a_local_time_round_trips_through_utc(naive):
 
 
 def test_a_refused_form_says_why():
-    from previewit.adapters.web.session import csrf_problem
+    from peerview.adapters.web.session import csrf_problem
 
     def req(cookie: str | None, origin: str | None = None) -> Request:
         return http_request(

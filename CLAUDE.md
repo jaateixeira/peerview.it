@@ -1,4 +1,4 @@
-# Previewit: working agreement for Claude Code
+# peerview.it: working agreement for Claude Code
 
 Open-source peer-review platform for ANY organization (education is one preset). Read `docs/PLAN.md` and `docs/business/README.md` first.
 
@@ -6,18 +6,19 @@ Open-source peer-review platform for ANY organization (education is one preset).
 - Layers: `bootstrap` > `adapters` > `application` > `domain`. Imports only point downward.
 - `domain/` and `application/` are pure Python: no FastAPI, Jinja2, SQLAlchemy, or I/O.
 - The core is domain-neutral: say Space / Member / Party / Call / Submission / Review, never course / student / teacher. Education wording lives in presets.
+- The brand is `peerview.it` (ADR 0027): all lowercase with its `.it`, even at the start of a sentence; `peerview` where a dot cannot go (package, `PEERVIEW_*` settings, files). Never the old name or another spelling; `tests/unit/test_vocabulary.py` enforces it.
 - Words: use `docs/glossary.md` (ADR 0016). One concept, one word. Say anonymous, never blind; allocation, never assignment; Submission, never work product. `tests/unit/test_vocabulary.py` enforces it.
 - Three actors with fixed roles per Space: Organizer, Author, Reviewer (ADR 0017). Calls travel as links with tokens: the call for authors (public or protected) and one personal Invitation per reviewer. A verified email is the only entry requirement; an invited reviewer needs only the link and is invited to join after reviewing (ADR 0020).
 - A Party (user or group) is both author and reviewer. Never special-case direction.
 - Identity display goes through one IdentityMask service (once built). Never render a name directly.
 - Every tenant-owned row carries `org_id`.
-- New artifact types, allocation strategies, etc. are plugins (`previewit.plugins`), never `if kind == "pdf"` in the core.
+- New artifact types, allocation strategies, etc. are plugins (`peerview.plugins`), never `if kind == "pdf"` in the core.
 
 ## Business rules (see `docs/business/`, ADR 0005)
 - Hosted-first: the hosted site (`peerview.it`; `peereview.it` leads to it, ADR 0021) is the product. Optimise sign-up to first review round (target: under 10 minutes).
 - Review by link is a core flow: request or give a review from a shared link with minimal sign-up.
 - Free tier: 50 MB of storage and 100 shares per user. The organizer pays above that; students and reviewers never pay. Limits go through the `Entitlements` port, never `if plan == ...`.
-- AI reviews (ADR 0025): Previewit pays only for the small models on its own Ollama server. A person's key for any other model is used for one request and never stored, logged or shown. Only the author and the organizers see AI reviews; reviewers never do.
+- AI reviews (ADR 0025): peerview.it pays only for the small models on its own Ollama server. A person's key for any other model is used for one request and never stored, logged or shown. Only the author and the organizers see AI reviews; reviewers never do.
 - Credit (ADR 0026): euro packs sold through Paddle, the merchant of record; 30-day refunds for any reason. Never handle card data. Money is integer euro cents in entries, never a stored balance. The legal pages (/pricing, /terms, /refunds, /privacy, /contact) stay true and linked from every page: Paddle's review depends on them.
 - Year-1 scope: Education preset; text, PDF and web pages (ADR 0022); AI reviews of them (ADR 0025). No academic-venue features, code review or extra plugins.
 - Self-hosting is expert-only and unsupported: Debian Linux (stable) and PostgreSQL. Do not add Docker, installers, other OS support or a small-server mode. Never make the code slower or heavier on purpose.

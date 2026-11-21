@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from previewit.domain.calls import (
+from peerview.domain.calls import (
     Artifact,
     Call,
     CallId,
@@ -12,8 +12,8 @@ from previewit.domain.calls import (
     clean_description,
     clean_title,
 )
-from previewit.domain.identity import UserId
-from previewit.domain.tenancy import OrgId, SpaceId
+from peerview.domain.identity import UserId
+from peerview.domain.tenancy import OrgId, SpaceId
 
 NOW = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
 

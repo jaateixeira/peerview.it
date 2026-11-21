@@ -9,13 +9,13 @@ import pytest
 import uvicorn
 from tests.unit.test_webpage_plugin import FakePageChecker
 
-import previewit.bootstrap as bootstrap
-from previewit.adapters.ai.catalog import Catalogue, LocalModels, Service, load_catalogue
-from previewit.adapters.settings import Settings
-from previewit.application.ai_reviews import AiAnswer, AiPrompt
-from previewit.application.web_pages import PageCheck
-from previewit.bootstrap import create_app
-from previewit.domain.ai_models import ModelCard
+import peerview.bootstrap as bootstrap
+from peerview.adapters.ai.catalog import Catalogue, LocalModels, Service, load_catalogue
+from peerview.adapters.settings import Settings
+from peerview.application.ai_reviews import AiAnswer, AiPrompt
+from peerview.application.web_pages import PageCheck
+from peerview.bootstrap import create_app
+from peerview.domain.ai_models import ModelCard
 
 
 class Outbox:
@@ -111,22 +111,22 @@ def base_url():
     bootstrap.build_ai_catalogue = _catalogue  # type: ignore[assignment]
     bootstrap.build_ai_writer = lambda _settings, _services: WRITER  # type: ignore[assignment]
     # The app checks the Origin header of form posts against its own base URL.
-    os.environ["PREVIEWIT_BASE_URL"] = f"http://127.0.0.1:{port}"
+    os.environ["PEERVIEW_BASE_URL"] = f"http://127.0.0.1:{port}"
     # The same server under a second name, to show that an alias leads to the main address.
-    os.environ["PREVIEWIT_ALIASES"] = f"http://localhost:{port}"
+    os.environ["PEERVIEW_ALIASES"] = f"http://localhost:{port}"
     # Selling credit through Paddle's sandbox, and who sells it (ADR 0026).
     keys = tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False)  # noqa: SIM115
     keys.write('anthropic = "sk-ant-acceptance-house-key"\n')
     keys.close()
     os.chmod(keys.name, 0o600)
     os.environ.update({
-        "PREVIEWIT_AI_KEYS_FILE": keys.name,
-        "PREVIEWIT_PADDLE_CLIENT_TOKEN": "test_acceptance",
-        "PREVIEWIT_PADDLE_WEBHOOK_SECRET": PADDLE_SECRET,
-        "PREVIEWIT_PADDLE_PACKS": "pri_5:5,pri_10:10,pri_25:25",
-        "PREVIEWIT_SELLER_LEGAL_NAME": "Sam Seller",
-        "PREVIEWIT_SELLER_ADDRESS": "Testikatu 1, 40100 Jyväskylä, Finland",
-        "PREVIEWIT_SELLER_EMAIL": "hello@example.org",
+        "PEERVIEW_AI_KEYS_FILE": keys.name,
+        "PEERVIEW_PADDLE_CLIENT_TOKEN": "test_acceptance",
+        "PEERVIEW_PADDLE_WEBHOOK_SECRET": PADDLE_SECRET,
+        "PEERVIEW_PADDLE_PACKS": "pri_5:5,pri_10:10,pri_25:25",
+        "PEERVIEW_SELLER_LEGAL_NAME": "Sam Seller",
+        "PEERVIEW_SELLER_ADDRESS": "Testikatu 1, 40100 Jyväskylä, Finland",
+        "PEERVIEW_SELLER_EMAIL": "hello@example.org",
     })  # fmt: skip
     server = uvicorn.Server(
         uvicorn.Config(create_app(), host="127.0.0.1", port=port, log_level="warning")

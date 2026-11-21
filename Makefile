@@ -21,10 +21,10 @@ integration:
 acceptance:
 	uv run pytest tests/acceptance $(PYTEST_ARGS)
 run:
-	uv run uvicorn previewit.bootstrap:create_app --factory --reload --host localhost --port 8000
+	uv run uvicorn peerview.bootstrap:create_app --factory --reload --host localhost --port 8000
 
 report:
 	mkdir -p reports
-	uv run pytest $(PYTEST_ARGS) --cov=previewit --cov-branch --cov-report=term-missing \
+	uv run pytest $(PYTEST_ARGS) --cov=peerview --cov-branch --cov-report=term-missing \
 	  --cov-report=html:reports/coverage --junitxml=reports/junit.xml \
 	  --html=reports/pytest-report.html --self-contained-html

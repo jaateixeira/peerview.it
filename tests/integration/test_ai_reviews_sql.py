@@ -4,11 +4,11 @@ no column anywhere holds the person's key."""
 import pytest
 from sqlalchemy import select
 
-from previewit.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
-from previewit.adapters.persistence.sql_ai_reviews import SqlAiReviewRepository
-from previewit.adapters.persistence.sql_calls import SqlCallRepository
-from previewit.adapters.persistence.sql_credits import SqlCreditRepository
-from previewit.adapters.persistence.tables import ai_reviews
+from peerview.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
+from peerview.adapters.persistence.sql_ai_reviews import SqlAiReviewRepository
+from peerview.adapters.persistence.sql_calls import SqlCallRepository
+from peerview.adapters.persistence.sql_credits import SqlCreditRepository
+from peerview.adapters.persistence.tables import ai_reviews
 from tests.integration.test_tenancy_sql import engine as engine  # fixture
 from tests.unit import test_ai_reviews_service as base
 

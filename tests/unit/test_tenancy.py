@@ -2,8 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from previewit.domain.identity import UserId
-from previewit.domain.tenancy import (
+from peerview.domain.identity import UserId
+from peerview.domain.tenancy import (
     CREATOR_ROLES,
     DEFAULT_ROLES,
     EDUCATION,

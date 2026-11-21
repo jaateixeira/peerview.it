@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from previewit.application.artifacts import (
+from peerview.application.artifacts import (
     ArtifactError,
     ArtifactRegistry,
     ArtifactType,
@@ -15,8 +15,8 @@ from previewit.application.artifacts import (
     Upload,
     connect_plugins,
 )
-from previewit.application.web_pages import PageCheck, PageUnreachable, normalise_address
-from previewit.plugins.webpage import WebPageArtifact
+from peerview.application.web_pages import PageCheck, PageUnreachable, normalise_address
+from peerview.plugins.webpage import WebPageArtifact
 
 
 class FakePageChecker:
@@ -35,7 +35,7 @@ class FakePageChecker:
         self.checked.append(url)
         found = self.pages.get(url)
         if found is None:
-            raise PageUnreachable("Previewit could not find that site. Check the address.")
+            raise PageUnreachable("peerview.it could not find that site. Check the address.")
         if isinstance(found, str):
             raise PageUnreachable(found)
         return found
@@ -47,7 +47,7 @@ class FakePageChecker:
         if isinstance(found, str):
             raise PageUnreachable(found)
         if url not in self.texts:
-            raise PageUnreachable("Previewit could not read that page.")
+            raise PageUnreachable("peerview.it could not read that page.")
         return self.texts[url]
 
 
@@ -119,7 +119,7 @@ def test_reviewers_see_a_safe_card_with_a_link_that_opens_elsewhere():
 
 
 def test_a_record_with_a_strange_address_is_shown_without_a_link():
-    from previewit.domain.calls import Artifact
+    from peerview.domain.calls import Artifact
 
     bad = Artifact("webpage", "application/json", json.dumps({"address": "javascript:x"}).encode())
     html = plugin().render_html(bad, "/raw/1")

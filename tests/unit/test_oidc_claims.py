@@ -13,14 +13,14 @@ from joserfc.jwk import ECKey
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 
-from previewit.adapters.auth.apple import (
+from peerview.adapters.auth.apple import (
     apple_client_secret,
     apple_name_hint,
     claims_from_apple,
 )
-from previewit.adapters.auth.base import AuthFailed
-from previewit.adapters.auth.oidc import OidcProvider, claims_from_google
-from previewit.domain.identity import Email, Provider
+from peerview.adapters.auth.base import AuthFailed
+from peerview.adapters.auth.oidc import OidcProvider, claims_from_google
+from peerview.domain.identity import Email, Provider
 
 # --- Google claim mapping ----------------------------------------------------------
 

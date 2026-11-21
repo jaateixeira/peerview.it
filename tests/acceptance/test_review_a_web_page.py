@@ -1,4 +1,4 @@
-"""Review a web page (ADR 0022): give its address instead of a file; Previewit checks it can
+"""Review a web page (ADR 0022): give its address instead of a file; peerview.it checks it can
 reach the page, and reviewers open it and comment on the whole page."""
 
 import pytest
@@ -33,7 +33,7 @@ def test_a_web_page_is_checked_sent_out_and_commented_on(page: Page, browser: Br
 
     # a public page is reached and previewed; its title becomes the review's title
     address.type("example.org/portfolio")
-    expect(address.result).to_contain_text("Previewit can reach this page.")
+    expect(address.result).to_contain_text("peerview.it can reach this page.")
     expect(address.result).to_contain_text("Maya's design portfolio")
     reviewer_email = unique("rita")
     request.type_reviewers(reviewer_email)
@@ -42,7 +42,7 @@ def test_a_web_page_is_checked_sent_out_and_commented_on(page: Page, browser: Br
     expect(page.get_by_text("“Maya's design portfolio” is up for review")).to_be_visible()
     link = page.locator("input.link-box").first.input_value()
 
-    # the reviewer opens the page from Previewit and comments on the whole of it
+    # the reviewer opens the page from peerview.it and comments on the whole of it
     context = browser.new_context()
     try:
         reviewer = context.new_page()

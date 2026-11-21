@@ -11,17 +11,17 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from previewit.adapters.persistence.memory import InMemoryUserRepository
-from previewit.adapters.persistence.memory_credits import InMemoryCreditRepository
-from previewit.application.credits import CreditsService, NotEnoughCredit, UnknownBuyer
-from previewit.domain.credits import (
+from peerview.adapters.persistence.memory import InMemoryUserRepository
+from peerview.adapters.persistence.memory_credits import InMemoryCreditRepository
+from peerview.application.credits import CreditsService, NotEnoughCredit, UnknownBuyer
+from peerview.domain.credits import (
     CreditKind,
     CreditPack,
     CreditPricing,
     InvalidCreditPack,
     euros,
 )
-from previewit.domain.identity import Email, User, UserId
+from peerview.domain.identity import Email, User, UserId
 
 ADA = UserId("ada")
 NOW = datetime(2026, 11, 20, 12, 0, tzinfo=UTC)

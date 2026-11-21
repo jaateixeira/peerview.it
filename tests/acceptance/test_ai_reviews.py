@@ -35,7 +35,7 @@ def test_an_author_gets_an_ai_review_that_reviewers_never_see(
     ai = AiStep(page)
     ai.say_yes()
     expect(page.get_by_text("Free", exact=True).first).to_be_visible()
-    expect(page.get_by_text("Runs at: Previewit's own server, Finland")).to_be_visible()
+    expect(page.get_by_text("Runs at: peerview.it's own server, Finland")).to_be_visible()
     expect(page.get_by_text("See more models")).to_be_visible()
     ai.choose("qwen3:8b")
     form.send()

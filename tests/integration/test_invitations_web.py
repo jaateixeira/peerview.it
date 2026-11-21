@@ -4,7 +4,7 @@ import re
 
 from fastapi.testclient import TestClient
 
-from previewit.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
+from peerview.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
 from tests.integration.test_calls_web import create_call, submit_text
 from tests.integration.test_rounds_web import new_round, page_of, round_id
 from tests.integration.test_tenancy_web import PASSWORD, Course, post, signup
@@ -125,7 +125,7 @@ def test_a_visitor_reviews_without_an_account_and_is_then_invited_to_join():
     guest, r = start_as_guest(c, link)
     assert r.status_code == 303 and r.headers["location"] == f"{c.space}/reviews"
     mine = guest.get(f"{c.space}/reviews").text
-    assert "Essay by Sam" in mine and 'href="/account/new">Join Previewit' in mine
+    assert "Essay by Sam" in mine and 'href="/account/new">Join peerview.it' in mine
     assert "rita@x.fi: accepted (Rita Reviewer)" in c.teacher.get(page_of(c, call)).text
 
     task = re.search(r'href="(/tasks/\w+)"', mine).group(1)  # type: ignore[union-attr]
@@ -169,7 +169,7 @@ def test_an_address_with_an_account_is_asked_to_log_in():
     verified_visitor(c)
     link = link_in(invite(c, call, work=(sub,))[0].text)
     _, r = start_as_guest(c, link)
-    assert r.status_code == 409 and "already has a Previewit account" in r.text
+    assert r.status_code == 409 and "already has a peerview.it account" in r.text
     assert "/login?next=" in r.text and "set-cookie" not in r.headers
 
 
@@ -220,7 +220,7 @@ def test_invitation_pages_keep_the_token_out_of_referrers():
     assert c.h.new_client().get(link).headers["referrer-policy"] == "same-origin"
 
 
-# --- Previewit sends the invitation: generate the link, ask, then ask for a cover letter -------
+# --- peerview.it sends the invitation: generate the link, ask, then ask for a cover letter -------
 
 
 def send(c: Course, rid: str, fresh_page: str, letter: str = "Please be kind."):
@@ -229,15 +229,15 @@ def send(c: Course, rid: str, fresh_page: str, letter: str = "Please be kind."):
     return post(c.teacher, f"/rounds/{rid}/invitations/send", data, page="/spaces"), token
 
 
-def test_the_organizer_is_asked_whether_previewit_should_send_it_and_for_a_cover_letter():
+def test_the_organizer_is_asked_whether_peerview_should_send_it_and_for_a_cover_letter():
     c, call, sub = course_with_round()
     created, _ = invite(c, call, work=(sub,))
-    assert "Have Previewit email it to rita@x.fi" in created.text
+    assert "Have peerview.it email it to rita@x.fi" in created.text
     assert 'name="cover_letter"' in created.text and "send it yourself" in created.text
     assert c.h.outbox.sent[-1][0] != EMAIL  # nothing was sent yet
 
 
-def test_previewit_mails_the_invitation_with_the_cover_letter():
+def test_peerview_mails_the_invitation_with_the_cover_letter():
     c, call, sub = course_with_round()
     confirm_email(c, c.teacher, "tina@x.fi")
     created, rid = invite(c, call, work=(sub,))

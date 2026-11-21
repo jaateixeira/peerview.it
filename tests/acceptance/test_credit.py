@@ -10,7 +10,7 @@ from playwright.sync_api import Page, expect
 from tests.acceptance.test_ai_reviews import AiStep
 from tests.acceptance.test_request_a_review import RequestReviewPage, unique
 
-from previewit.adapters.payments.paddle import sign
+from peerview.adapters.payments.paddle import sign
 
 pytestmark = pytest.mark.acceptance
 

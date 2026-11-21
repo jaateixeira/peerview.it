@@ -318,7 +318,7 @@ def test_reviews_are_due_at_four_in_the_afternoon_unless_another_time_is_chosen(
     client.cookies.set("pv_tz", "Europe/Helsinki")
     page = client.get(NEW).text
     assert 'name="due_time" value="16:00"' in page and "data-min-today" in page
-    assert "Join a paid plan to choose when Previewit" in page
+    assert "Join a paid plan to choose when peerview.it" in page
     for data, due in (
         ({"due": "2027-06-01"}, "2027-06-01 16:00 EEST"),
         ({"due": "2027-06-01", "due_time": "09:15"}, "2027-06-01 09:15 EEST"),

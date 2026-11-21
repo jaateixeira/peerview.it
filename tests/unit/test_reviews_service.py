@@ -3,22 +3,22 @@ from itertools import count
 
 import pytest
 
-from previewit.adapters.persistence.memory_rubrics import InMemoryRubricRepository
-from previewit.application.artifacts import ArtifactRegistry, Upload
-from previewit.application.criteria import CriterionRegistry
-from previewit.application.reviews import AnswerErrors, ReviewsService
-from previewit.application.rubrics import RubricsService
-from previewit.application.tenancy import Forbidden, NotFound
-from previewit.domain.party import GroupParty, UserParty
-from previewit.domain.reviews import WHOLE_WORK, EditConflict, InvalidReview, ReviewClosed
-from previewit.plugins.criteria import (
+from peerview.adapters.persistence.memory_rubrics import InMemoryRubricRepository
+from peerview.application.artifacts import ArtifactRegistry, Upload
+from peerview.application.criteria import CriterionRegistry
+from peerview.application.reviews import AnswerErrors, ReviewsService
+from peerview.application.rubrics import RubricsService
+from peerview.application.tenancy import Forbidden, NotFound
+from peerview.domain.party import GroupParty, UserParty
+from peerview.domain.reviews import WHOLE_WORK, EditConflict, InvalidReview, ReviewClosed
+from peerview.plugins.criteria import (
     LevelsCriterion,
     NumericCriterion,
     TextCriterion,
     YesNoCriterion,
 )
-from previewit.plugins.pdf import PdfArtifact
-from previewit.plugins.text import TextArtifact
+from peerview.plugins.pdf import PdfArtifact
+from peerview.plugins.text import TextArtifact
 from tests.unit.test_calls_service import PAT, SAM, SUE, TINA
 from tests.unit.test_rounds_service import RoundsWorld
 from tests.unit.test_tenancy_service import ALICE, AVA, BOB, ZED
@@ -333,7 +333,7 @@ def test_a_round_with_reviews_cannot_be_reallocated_or_deleted(w: ReviewWorld):
     task = w.task_for(UserParty(SUE), SAM)
     rnd = w._round
     w.rv.save(SUE, task.id, w.answers(), 0)
-    from previewit.domain.rounds import InvalidRound
+    from peerview.domain.rounds import InvalidRound
 
     with pytest.raises(InvalidRound):
         w.rr.delete_round(TINA, rnd.id)

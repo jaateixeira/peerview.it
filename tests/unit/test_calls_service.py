@@ -3,16 +3,16 @@ from itertools import count
 
 import pytest
 
-from previewit.adapters.entitlements import UnlimitedEntitlements
-from previewit.adapters.persistence.memory import InMemoryUserRepository
-from previewit.adapters.persistence.memory_calls import InMemoryCallRepository
-from previewit.application.artifacts import (
+from peerview.adapters.entitlements import UnlimitedEntitlements
+from peerview.adapters.persistence.memory import InMemoryUserRepository
+from peerview.adapters.persistence.memory_calls import InMemoryCallRepository
+from peerview.application.artifacts import (
     ArtifactError,
     ArtifactRegistry,
     UnknownArtifactType,
     Upload,
 )
-from previewit.application.calls import (
+from peerview.application.calls import (
     AlreadySubmitted,
     CallClosed,
     CallHasSubmissions,
@@ -20,13 +20,13 @@ from previewit.application.calls import (
     InvalidShare,
     ShareLimitReached,
 )
-from previewit.application.tenancy import Forbidden, NotFound, VerificationRequired
-from previewit.domain.calls import CallAccess, CallId, InvalidCall, ShareTarget
-from previewit.domain.identity import Email, User, UserId
-from previewit.domain.policy import Action, VerificationPolicy
-from previewit.domain.tenancy import Role
-from previewit.plugins.pdf import PdfArtifact
-from previewit.plugins.text import TextArtifact
+from peerview.application.tenancy import Forbidden, NotFound, VerificationRequired
+from peerview.domain.calls import CallAccess, CallId, InvalidCall, ShareTarget
+from peerview.domain.identity import Email, User, UserId
+from peerview.domain.policy import Action, VerificationPolicy
+from peerview.domain.tenancy import Role
+from peerview.plugins.pdf import PdfArtifact
+from peerview.plugins.text import TextArtifact
 from tests.unit import test_tenancy_service as base
 from tests.unit.test_tenancy_service import ALICE, AVA, BOB, SAM, T0, TINA, ZED
 

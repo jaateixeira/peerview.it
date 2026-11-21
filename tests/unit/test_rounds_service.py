@@ -3,15 +3,15 @@ from itertools import count
 
 import pytest
 
-from previewit.adapters.persistence.memory_reviews import InMemoryReviewRepository
-from previewit.adapters.persistence.memory_rounds import InMemoryRoundRepository
-from previewit.application.allocation import StrategyRegistry, UnknownStrategy
-from previewit.application.artifacts import Upload
-from previewit.application.rounds import RoundsService
-from previewit.application.tenancy import Forbidden, NotFound
-from previewit.domain.party import GroupParty, UserParty
-from previewit.domain.rounds import InvalidRound, RoundStatus
-from previewit.plugins.allocation import ManualStrategy, RandomStrategy, RoundRobinStrategy
+from peerview.adapters.persistence.memory_reviews import InMemoryReviewRepository
+from peerview.adapters.persistence.memory_rounds import InMemoryRoundRepository
+from peerview.application.allocation import StrategyRegistry, UnknownStrategy
+from peerview.application.artifacts import Upload
+from peerview.application.rounds import RoundsService
+from peerview.application.tenancy import Forbidden, NotFound
+from peerview.domain.party import GroupParty, UserParty
+from peerview.domain.rounds import InvalidRound, RoundStatus
+from peerview.plugins.allocation import ManualStrategy, RandomStrategy, RoundRobinStrategy
 from tests.unit.test_calls_service import PAT, SAM, SUE, TINA, CWorld
 from tests.unit.test_tenancy_service import ALICE, AVA, BOB, ZED
 

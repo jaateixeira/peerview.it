@@ -5,11 +5,11 @@ import pytest
 from sqlalchemy import delete, insert, select
 from sqlalchemy.exc import IntegrityError
 
-from previewit.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
-from previewit.adapters.persistence.sql_calls import SqlCallRepository
-from previewit.adapters.persistence.sql_reviews import SqlReviewRepository
-from previewit.adapters.persistence.sql_rounds import SqlRoundRepository
-from previewit.adapters.persistence.tables import invitation_submissions, invitations, review_rounds
+from peerview.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
+from peerview.adapters.persistence.sql_calls import SqlCallRepository
+from peerview.adapters.persistence.sql_reviews import SqlReviewRepository
+from peerview.adapters.persistence.sql_rounds import SqlRoundRepository
+from peerview.adapters.persistence.tables import invitation_submissions, invitations, review_rounds
 from tests.integration.test_tenancy_sql import engine as engine  # fixture
 from tests.unit import test_invitations_service as base
 from tests.unit.test_invitations_service import SAM, SUE, TINA, InviteWorld

@@ -4,10 +4,10 @@ import pytest
 from loguru import logger
 from rich.console import Console
 
-from previewit.adapters.console import startup_panel
-from previewit.adapters.logs import configure_logging
-from previewit.adapters.settings import Settings
-from previewit.domain.policy import Action, VerificationPolicy
+from peerview.adapters.console import startup_panel
+from peerview.adapters.logs import configure_logging
+from peerview.adapters.settings import Settings
+from peerview.domain.policy import Action, VerificationPolicy
 
 
 def test_the_level_filters_and_standard_logging_is_captured():
@@ -41,7 +41,7 @@ def test_the_startup_panel_shows_the_setup_but_no_secrets():
     settings = Settings(
         secret_key="TOPSECRET",
         base_url="https://peereview.example",
-        database_url="postgresql+psycopg://user:dbpassword@db/previewit",
+        database_url="postgresql+psycopg://user:dbpassword@db/peerview",
         smtp_password="smtppassword",
         cache_url="valkey://:cachepassword@cache/0",
         verification_policy=VerificationPolicy(frozenset({Action.REVIEW})),
@@ -55,7 +55,7 @@ def test_the_startup_panel_shows_the_setup_but_no_secrets():
     console.print(panel)
     out = console.export_text()
     for expected in (
-        "Previewit 1.2.3", "peereview.example", "postgresql", "Valkey", "review",
+        "peerview.it 1.2.3", "peereview.example", "postgresql", "Valkey", "review",
         "Also answers at", "https://peerview.example",
     ):  # fmt: skip
         assert expected in out

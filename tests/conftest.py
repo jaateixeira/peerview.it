@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-_tmp = Path(tempfile.mkdtemp(prefix="previewit-tests-"))
-os.environ["PREVIEWIT_DATABASE_URL"] = f"sqlite:///{_tmp / 'test.db'}"
-os.environ["PREVIEWIT_SECRET_KEY"] = "test-only-secret"
-os.environ["PREVIEWIT_BASE_URL"] = "http://testserver"
+_tmp = Path(tempfile.mkdtemp(prefix="peerview-tests-"))
+os.environ["PEERVIEW_DATABASE_URL"] = f"sqlite:///{_tmp / 'test.db'}"
+os.environ["PEERVIEW_SECRET_KEY"] = "test-only-secret"
+os.environ["PEERVIEW_BASE_URL"] = "http://testserver"
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ All flows are planned. Messages are written in plain words, not as function name
 sequenceDiagram
     actor O as Organizer
     actor A as Author
-    participant P as Previewit
+    participant P as peerview.it
 
     O->>P: Create call (instructions, artifact type, deadline, access mode)
     O->>P: Publish
@@ -30,14 +30,14 @@ sequenceDiagram
 sequenceDiagram
     actor O as Organizer
     actor R as Reviewer
-    participant P as Previewit
+    participant P as peerview.it
 
     O->>P: Build rubric, configure round (reviews each, anonymity, allocation)
     O->>P: Choose reviewers and allocate
     P->>P: Allocation: no conflicts, balanced load
     O->>P: Send call for reviewers
     P-->>O: One invitation link per reviewer
-    alt Previewit sends it
+    alt peerview.it sends it
         O->>P: Yes, with a cover letter
         P-)R: Email: cover letter and link
     else Organizer sends it
@@ -50,12 +50,12 @@ sequenceDiagram
 
 ## Process 3: reviewing by invitation (M5, step D done, ADR 0020)
 
-A reviewer needs no account. Previewit makes a guest reviewer for the invitation and invites them to join after the review.
+A reviewer needs no account. peerview.it makes a guest reviewer for the invitation and invites them to join after the review.
 
 ```mermaid
 sequenceDiagram
     actor R as Reviewer
-    participant P as Previewit
+    participant P as peerview.it
 
     R->>P: Open invitation link
     P->>P: Check token (revoked, expired, closed round or wrong: refuse)
@@ -72,7 +72,7 @@ sequenceDiagram
     end
     R->>P: Submit review
     opt Guest reviewer
-        P-->>R: Thanks the reviewer, offers Join Previewit
+        P-->>R: Thanks the reviewer, offers Join peerview.it
         R->>P: Choose a password (email is the invited address)
         P-)R: Email: confirm the address
     end
@@ -120,7 +120,7 @@ sequenceDiagram
     actor O as Organizer
     actor A as Authors
     actor R as Reviewers
-    participant P as Previewit
+    participant P as peerview.it
 
     O->>P: Create call, rubric and round
     A->>P: Submit work

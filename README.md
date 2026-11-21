@@ -1,4 +1,4 @@
-# Previewit
+# peerview.it
 
 Fast, friendly, open-source peer review for any organization: classrooms, journals and conferences, engineering teams, companies.
 
@@ -7,7 +7,7 @@ Individuals and groups review each other (1:n and n:n), with configurable anonym
 Status: early development (M0 complete). Licensed under AGPL-3.0-or-later. See [docs/PLAN.md](docs/PLAN.md) and [docs/business/](docs/business/README.md).
 
 ## Hosted or self-hosted
-The easy way to use Previewit will be the hosted service at [peerview.it](https://peerview.it) (also `peereview.it`), with a free tier (in preparation; the site is not live yet). Self-hosting is possible but unsupported and for experts only: Debian Linux (stable) and PostgreSQL, no container image or installer. See [ADR 0005](docs/adr/0005-hosted-first-debian-only.md).
+The easy way to use peerview.it will be the hosted service at [peerview.it](https://peerview.it) (also `peereview.it`), with a free tier (in preparation; the site is not live yet). Self-hosting is possible but unsupported and for experts only: Debian Linux (stable) and PostgreSQL, no container image or installer. See [ADR 0005](docs/adr/0005-hosted-first-debian-only.md).
 
 ## Documentation
 | | |

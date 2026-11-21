@@ -7,10 +7,10 @@ import pytest
 from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError
 
-from previewit.adapters.persistence.engine import make_engine
-from previewit.adapters.persistence.migrate import upgrade
-from previewit.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
-from previewit.adapters.persistence.tables import (
+from peerview.adapters.persistence.engine import make_engine
+from peerview.adapters.persistence.migrate import upgrade
+from peerview.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
+from peerview.adapters.persistence.tables import (
     group_members,
     groups,
     invites,
@@ -18,11 +18,11 @@ from previewit.adapters.persistence.tables import (
     space_members,
     spaces,
 )
-from previewit.domain.tenancy import DEFAULT_ROLES, format_roles
+from peerview.domain.tenancy import DEFAULT_ROLES, format_roles
 from tests.integration.test_user_repository import _clean_postgres
 from tests.unit import test_tenancy_service as base
 
-POSTGRES_URL = os.environ.get("PREVIEWIT_TEST_POSTGRES_URL")
+POSTGRES_URL = os.environ.get("PEERVIEW_TEST_POSTGRES_URL")
 
 
 @pytest.fixture(params=["sqlite", "postgres"])
@@ -31,7 +31,7 @@ def engine(request: pytest.FixtureRequest, tmp_path):
         url = f"sqlite:///{tmp_path / 'tenancy.db'}"
     else:
         if not POSTGRES_URL:
-            pytest.skip("set PREVIEWIT_TEST_POSTGRES_URL to run against PostgreSQL")
+            pytest.skip("set PEERVIEW_TEST_POSTGRES_URL to run against PostgreSQL")
         _clean_postgres(POSTGRES_URL)
         url = POSTGRES_URL
     upgrade(url)
@@ -88,7 +88,7 @@ def test_group_members_must_carry_their_groups_org(w: base.World, engine):
 def test_deleting_an_organization_removes_everything_under_it(w: base.World, engine):
     from sqlalchemy import delete, func, select
 
-    from previewit.adapters.persistence.tables import organizations
+    from peerview.adapters.persistence.tables import organizations
 
     w.t.create_group(base.ALICE, w.s.id, "G", members=[base.SAM])
     with engine.begin() as conn:

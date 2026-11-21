@@ -25,7 +25,7 @@ flowchart TB
         P[Organisers above free limits]
         I[Institutions and companies<br/>later options]
     end
-    PV[Previewit<br/>hosted at peerview.it + AGPL code]
+    PV[peerview.it<br/>hosted site + AGPL code]
     PV -- easy reviews, feedback --> S
     PV -- fast setup, free --> T
     PV -- AGPL code --> H

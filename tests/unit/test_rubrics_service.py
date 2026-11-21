@@ -2,12 +2,12 @@ from itertools import count
 
 import pytest
 
-from previewit.adapters.persistence.memory_rubrics import InMemoryRubricRepository
-from previewit.application.criteria import CriterionError, CriterionRegistry, UnknownCriterionType
-from previewit.application.rubrics import RubricInUse, RubricsService
-from previewit.application.tenancy import Forbidden, NotFound
-from previewit.domain.rubrics import InvalidRubric, RubricId
-from previewit.plugins.criteria import (
+from peerview.adapters.persistence.memory_rubrics import InMemoryRubricRepository
+from peerview.application.criteria import CriterionError, CriterionRegistry, UnknownCriterionType
+from peerview.application.rubrics import RubricInUse, RubricsService
+from peerview.application.tenancy import Forbidden, NotFound
+from peerview.domain.rubrics import InvalidRubric, RubricId
+from peerview.plugins.criteria import (
     LevelsCriterion,
     NumericCriterion,
     TextCriterion,

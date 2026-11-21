@@ -3,7 +3,7 @@
 Status: accepted
 
 ## Context
-Previewit mixes three audiences: education (first), academic venues and engineering teams (later), and a literature that uses many synonyms for the same thing ("work product", "review object", "artifact", "review item"; "assignment" for both homework and reviewer matching; "conflict" for allocation, conflict of interest and a stale save). The code had already drifted: `ReviewConflict` meant a stale save, "conflict" in allocation meant overlapping people, and `double_blind` sat beside the glossary's "double-anonymous". The core must stay domain-neutral (ADR 0004) and presets supply the user-visible words.
+peerview.it mixes three audiences: education (first), academic venues and engineering teams (later), and a literature that uses many synonyms for the same thing ("work product", "review object", "artifact", "review item"; "assignment" for both homework and reviewer matching; "conflict" for allocation, conflict of interest and a stale save). The code had already drifted: `ReviewConflict` meant a stale save, "conflict" in allocation meant overlapping people, and `double_blind` sat beside the glossary's "double-anonymous". The core must stay domain-neutral (ADR 0004) and presets supply the user-visible words.
 
 ## Decision
 - **[docs/glossary.md](../glossary.md) is the single source of words.** It covers every concept in the review literature list (types of review, object and scope, instruments, roles, feedback, cognitive and ethical concepts, rounds and lifecycle) and marks each as Core, Planned, Presentation, Deferred or Avoid, with its code name and the Education preset's word.

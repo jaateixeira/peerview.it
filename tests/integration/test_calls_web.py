@@ -2,7 +2,7 @@ import re
 
 from fastapi.testclient import TestClient
 
-from previewit.domain.policy import Action, VerificationPolicy
+from peerview.domain.policy import Action, VerificationPolicy
 from tests.integration.test_tenancy_web import Course, post, signup
 from tests.integration.web_fakes import csrf_token, make_harness
 

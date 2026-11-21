@@ -1,4 +1,4 @@
-# Glossary: the words Previewit uses
+# Glossary: the words peerview.it uses
 
 One concept, one word. Use these words in code, tests, docs, ADRs, issues and commit messages. The reasoning is in [ADR 0016](adr/0016-common-vocabulary.md). The list of review concepts it starts from is the standard literature vocabulary of peer, code and inspection review.
 
@@ -25,6 +25,7 @@ Status column:
 | Core term | Meaning | Status | Code | Education says | Avoid |
 |---|---|---|---|---|---|
 | **Organization** | The tenant. Owns every row (`org_id`), the preset and billing. | Core | `Organization`, `OrgId` | school | tenant (in UI), account |
+| **peerview.it** | The product, the site and the brand (ADR 0027). Written all lowercase with its `.it`, also at the start of a sentence; `peerview` where a dot cannot go (package, settings `PEERVIEW_*`, files). | Core | package `peerview` | (none) | Previewit (the old name), PeerView, Peerview, Peer View |
 | **Space** | A place where a set of Members reviews each other's work. | Core | `Space`, `SpaceId` | course | project, class, workspace |
 | **Review space** | The full name of a Space, not another concept. Use *Space* in code, tables and short docs; use *Review space* in prose where "space" alone is unclear, such as emails and the manual. Its Members are the people with a role in it: the organizer who created it, authors admitted through a call for authors and reviewers admitted through an Invitation. | Core (long form) | `Space` | course | project, class, workspace |
 | **Member** | A user with one or more roles in a Space. A verified email is enough to be one. | Core | `SpaceMember` | participant | participant (outside Education), user (when a role matters) |
@@ -34,29 +35,29 @@ Status column:
 | **Organizer** | The role that calls for authors and calls for reviewers, builds rubrics, runs Rounds and reads everything. The Organization owner is organizer in every Space. | Core | `Role.ORGANIZER`, `Permission` | teacher | moderator, facilitator, chair (see section 5) |
 | **Call** (for authors) | The Organizer's invitation to submit work, with a deadline, an artifact type and optionally a Rubric. Sent as a link. Access is **public** (plain URL) or **protected** (URL with a token). *Call* alone always means this one. | Core (access modes done) | `Call`, `CallId` | assignment | task, activity |
 | **Call for reviewers** | The Organizer's invitation to review the submitted work of a Round: a set of Invitations. | Core | (a set of `Invitation`) | (none) | review assignment |
-| **Invitation** | One personal link with a token for one invited reviewer (an email address), bound to that address, carrying the Submissions to review. Previewit can email it with the organizer's cover letter, or the organizer sends the link. | Core | `Invitation` | (none) | invite (an invite adds a Member) |
+| **Invitation** | One personal link with a token for one invited reviewer (an email address), bound to that address, carrying the Submissions to review. peerview.it can email it with the organizer's cover letter, or the organizer sends the link. | Core | `Invitation` | (none) | invite (an invite adds a Member) |
 | **Token** | The random secret in a link. At least 128 bits, one purpose, revocable. | Core (share links), Planned (C, D) | | | key, password |
 | **Submission** | What a Party hands in to a Call. It is the **review unit**: one Submission is reviewed as a whole. | Core | `Submission` | (none) | work product, review object, review item, deliverable |
 | **Revision** | A numbered, immutable version of a Submission. Reviews and Annotations are pinned to one Revision. | Core | `Revision` | (none) | version (ambiguous with `version` on a Review) |
 | **Artifact** | The content of a Revision, of a type supplied by a plugin (text, PDF, web page). | Core | `Artifact`, `ArtifactType` | (none) | attachment |
-| **Web page** | An artifact type: a public page given by its address. Previewit checks it can reach it and keeps a record of what it found (title, description), not a copy; reviewers open the page itself and comment on the whole of it (ADR 0022). | Core | `WebPageArtifact` (`webpage`), `PageChecker`, `normalise_address` | (none) | link (a link is how Previewit sends a call or Invitation), URL in user-facing text (say *address*) |
+| **Web page** | An artifact type: a public page given by its address. peerview.it checks it can reach it and keeps a record of what it found (title, description), not a copy; reviewers open the page itself and comment on the whole of it (ADR 0022). | Core | `WebPageArtifact` (`webpage`), `PageChecker`, `normalise_address` | (none) | link (a link is how peerview.it sends a call or Invitation), URL in user-facing text (say *address*) |
 | **Review** | The reviewer Party's response to one Submission: answers to the Rubric plus Annotations. | Core | `Review` | (none) | feedback (that is what an author *receives*), evaluation |
 | **Reviewer** / **Author** | Two roles (above) and, per task, two *relations* a Party has to a Submission. The same Party can be author of one Submission and reviewer of another. | Core | `ReviewTask.reviewer`, `Submission.author` | (none) | grader, evaluator, student author |
-| **Guest reviewer** | A Reviewer who opened an Invitation without an account. Previewit makes a user with no email or password for that one Invitation; the link brings the guest back. After the review, the guest is invited to **join** (choose a password) and keeps the reviews (ADR 0020). Not the `guest` flag of a call or Submission view, which means read-only access through a Share link. | Core | `User.is_guest`, `InvitationsService.start_as_guest` | (none) | anonymous user, temporary account |
+| **Guest reviewer** | A Reviewer who opened an Invitation without an account. peerview.it makes a user with no email or password for that one Invitation; the link brings the guest back. After the review, the guest is invited to **join** (choose a password) and keeps the reviews (ADR 0020). Not the `guest` flag of a call or Submission view, which means read-only access through a Share link. | Core | `User.is_guest`, `InvitationsService.start_as_guest` | (none) | anonymous user, temporary account |
 | **Share link** | A link that gives access to one Call or Submission with minimal sign-up. The author is the sender; an Invitation is personal and bound to an email; a share link is not. | Core | `ShareLink` | (none) | invite (an invite adds a Member) |
 | **Preset** | A bundle of vocabulary, roles, rubric templates and defaults for a kind of organization. | Core | `Preset` | (Education) | mode, template (a template is a Rubric template) |
 | **Request a review** | The quick way to start: one page where a person adds a file, a web page's address or some text, and the reviewers' email addresses, and sends it out. It makes the Review space, call, Submission, Round and Invitations in one step (ADR 0018). | Core | `QuickReviewService`, `/review/new` | (none) | wizard, quick start, upload form |
 | **Prepared request** | A *Request a review* form filled in and kept under a secret link until a person signs in, checks it and sends it; nothing is sent before. Two kinds: prepared by an AI assistant through the MCP service, kept 7 days (ADR 0023); filled in by a visitor before signing in, kept 1 hour with its file (ADR 0024). | Core | `PreparedRequest`, `PreparedRequestsService`, `/prepared/{token}` | (none) | draft (a draft is an unsubmitted Review) |
-| **MCP service** | Where AI assistants connect to Previewit, over the Model Context Protocol, at `/mcp`. Its one tool prepares a Prepared request (ADR 0023). | Core | `McpServer`, `prepare_review_request` | (none) | API, bot |
+| **MCP service** | Where AI assistants connect to peerview.it, over the Model Context Protocol, at `/mcp`. Its one tool prepares a Prepared request (ADR 0023). | Core | `McpServer`, `prepare_review_request` | (none) | API, bot |
 | **AI review** | Feedback on one Revision written by an AI model the author or an organizer chose. Not a Review: no Party writes it, it has no Rubric or Round, and only the author and the organizers see it, never reviewers (ADR 0025). | Core | `AiReview`, `AiReviewsService` | (none) | bot review, machine review, automatic review |
-| **AI model** | One model an AI review can come from, as the catalogue describes it: its maker, the service that runs it, where it runs and its price. *Free* models run on Previewit's own server; the others need the person's own key (ADR 0025). | Core | `ModelCard`, `models.toml` | (none) | AI reviewer (a reviewer is a person), bot, agent |
-| **Key** | A person's secret for a model's service, used for one AI review request and never stored (ADR 0025). Not a Token. | Core | `AiChoice.key` | (none) | token (a Token is Previewit's own secret in a link), password |
+| **AI model** | One model an AI review can come from, as the catalogue describes it: its maker, the service that runs it, where it runs and its price. *Free* models run on peerview.it's own server; the others need the person's own key (ADR 0025). | Core | `ModelCard`, `models.toml` | (none) | AI reviewer (a reviewer is a person), bot, agent |
+| **Key** | A person's secret for a model's service, used for one AI review request and never stored (ADR 0025). Not a Token. | Core | `AiChoice.key` | (none) | token (a Token is peerview.it's own secret in a link), password |
 | **Credit** | Euros a person bought in packs through Paddle and spends on AI reviews when they give no key of their own. Kept as entries (purchase, refund, hold, release); the balance is their sum (ADR 0026). | Core | `CreditsService`, `CreditEntry` | (none) | tokens, coins, wallet, balance (the balance is only the sum) |
 | **Credit pack** | One thing to buy: a whole number of euros of credit for that price, VAT included, as a Paddle price (ADR 0026). | Core | `CreditPack` | (none) | plan, subscription, bundle |
-| **Merchant of record** | Who sells to the buyer, takes the payment, pays the tax and handles refunds: Paddle, for Previewit's credit (ADR 0026). | Core | `PaddleNotifications` | (none) | payment provider (Paddle is more than that) |
+| **Merchant of record** | Who sells to the buyer, takes the payment, pays the tax and handles refunds: Paddle, for peerview.it's credit (ADR 0026). | Core | `PaddleNotifications` | (none) | payment provider (Paddle is more than that) |
 | **General preset** | The preset used when a Review space is made by *Request a review*: it says *review space* and nothing from a school. | Core | `GENERAL` | (none) | default preset (Education stays the first preset) |
 
-**The three processes** are the way to explain Previewit. Each is a flow between the three roles:
+**The three processes** are the way to explain peerview.it. Each is a flow between the three roles:
 
 1. **Organizing a call for authors**: the Organizer creates and sends a Call; Authors submit.
 2. **Organizing peer review**: the Organizer builds a Rubric and a Round, allocates, sends a call for reviewers and follows progress.
@@ -75,7 +76,7 @@ An **Auditor** (Deferred) will audit the review process: read-only over reviews,
 | **Double-anonymous** | Neither side sees the other. | Core | preset key `double_anonymous` | Was `double_blind` before ADR 0016. |
 | **Open review** | Everyone sees everyone. | Core | preset key `open` | |
 | **Inspection** (formal review) | Structured review with roles, checklist, prescribed process and defect log. | Deferred | | Year 2, engineering and academic presets. Do not use "inspection" for ordinary review. |
-| **Walkthrough**, **over-the-shoulder**, **pair review** | Synchronous, informal modes. | Avoid | | Out of scope. Previewit is asynchronous. |
+| **Walkthrough**, **over-the-shoulder**, **pair review** | Synchronous, informal modes. | Avoid | | Out of scope. peerview.it is asynchronous. |
 
 ## 3. The object and scope of review (source section B)
 
@@ -139,7 +140,7 @@ These are guidance for the words we write (help text, rubric templates, empty st
 | Core term | Meaning | Status | Code | Notes |
 |---|---|---|---|---|
 | **Round** | One cycle of review on a Call: reviewers write Reviews. Numbered 1, 2, 3 per Call. Status (scheduled, open, closed) is computed from the clock. | Core | `ReviewRound`, `RoundStatus` | Say *Round*, not *iteration* or *cycle*. Its closing time is shown as **Reviews due**: a day and a time, 16:00 by default, in the viewer's time zone (ADR 0019). |
-| **Reminder** | A message Previewit sends before the Reviews are due. | Deferred (M8) | | On a paid plan the Organizer chooses when it goes out (ADR 0019). |
+| **Reminder** | A message peerview.it sends before the Reviews are due. | Deferred (M8) | | On a paid plan the Organizer chooses when it goes out (ADR 0019). |
 | **Review task** | One reviewer Party paired with one Submission, at a given Revision. | Core | `ReviewTask` | "Task" alone is not used. Users see "My reviews". |
 | **Allocation** | Deciding which reviewers get which Submissions, honouring Conflicts and balancing load. | Core | `AllocationStrategy`, `Allocation`, `Slot` | Strategies: random, round-robin, manual. **Never "assignment"**: Education calls a Call an *assignment*, and "assigning reviewers" would be ambiguous. The Education button reads "Allocate reviewers". |
 | **Load balancing** | A property of an Allocation: loads differ by at most one when only authorship Conflicts exist. | Core | `balanced_assign`, `rebalance` | Not a feature name. |
@@ -153,7 +154,7 @@ These are guidance for the words we write (help text, rubric templates, empty st
 
 ## 9. Words that mean two things (read before you name anything)
 
-| Word | In Previewit | Not |
+| Word | In peerview.it | Not |
 |---|---|---|
 | **assignment** | Only the Education preset's word for a Call, shown to users. | Never in core code, docs or ADRs. Reviewer matching is **allocation**. |
 | **conflict** | Allocation overlap (section 7). | An edit conflict is `EditConflict`. A conflict of interest is COI. |

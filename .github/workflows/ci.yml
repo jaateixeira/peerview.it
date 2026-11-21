@@ -22,7 +22,7 @@ jobs:
         image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: previewit
+          POSTGRES_DB: peerview
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s
@@ -31,7 +31,7 @@ jobs:
     env:
       UV_PYTHON_PREFERENCE: only-system
       UV_FROZEN: "1"
-      PREVIEWIT_TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/previewit
+      PEERVIEW_TEST_POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/peerview
     steps:
       - name: Install system packages
         run: |

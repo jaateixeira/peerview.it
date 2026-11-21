@@ -1,6 +1,6 @@
-# Contributing to Previewit
+# Contributing to peerview.it
 
-Thanks for helping! Previewit is licensed under **AGPL-3.0-or-later**; by contributing you agree your work is released under the same licence. Please sign off commits (`git commit -s`) to certify the [Developer Certificate of Origin](https://developercertificate.org/).
+Thanks for helping! peerview.it is licensed under **AGPL-3.0-or-later**; by contributing you agree your work is released under the same licence. Please sign off commits (`git commit -s`) to certify the [Developer Certificate of Origin](https://developercertificate.org/).
 
 ## Getting started
 ```bash

@@ -1,6 +1,6 @@
 # Review designs across industries
 
-Every industry organizes peer review differently, but each form is a **Review design**: a set of choices on the same few dimensions. This page names the dimensions, shows ten review designs from the literature as UML diagrams, and says what Previewit needs for each. The evidence is in [peer-review-literature.md](peer-review-literature.md); keys in brackets point to its reference list or to section 5 here.
+Every industry organizes peer review differently, but each form is a **Review design**: a set of choices on the same few dimensions. This page names the dimensions, shows ten review designs from the literature as UML diagrams, and says what peerview.it needs for each. The evidence is in [peer-review-literature.md](peer-review-literature.md); keys in brackets point to its reference list or to section 5 here.
 
 Words follow the [glossary](../glossary.md). Where an industry uses another word, it is given once in quotes. Status marks follow [uml/README.md](../uml/README.md): **built**, **planned**, **deferred** (reserved in the glossary, after year 1) and **proposed** (a suggestion made here; confirm before building).
 
@@ -86,7 +86,7 @@ classDiagram
 
 `ReviewDesign` is not a new entity. It is the bundle of defaults a **Preset** would supply for a Call and its Rounds, as the [glossary](../glossary.md) defines Review design.
 
-| Dimension | Question it answers | Status in Previewit |
+| Dimension | Question it answers | Status in peerview.it |
 |---|---|---|
 | Purpose | Help the author, grade, decide, or assure compliance? | Deferred (`purpose` on a Round) |
 | Reviewer pool | Are reviewers the authors, a separate panel, another organization, or several rater groups? | Authors built (M4). Reviewers who are not authors join by Invitation (ADR 0017). Another organization and rater groups proposed |
@@ -113,7 +113,7 @@ Authors are the reviewers. Each reviews k Submissions and receives k Reviews, al
 sequenceDiagram
     actor O as Organizer
     actor P as Peers (authors and reviewers)
-    participant S as Previewit
+    participant S as peerview.it
 
     O->>S: Call, Rubric, exemplars with reference Answers
     P->>S: Submit Revision 1
@@ -318,7 +318,7 @@ Three patterns stand out:
 2. **Decisions need a second level.** Whenever review ends in a Decision or Sign-off, someone other than the reviewers makes it: editor, chair, council, committee, administering body.
 3. **Anonymity follows power, not habit.** Reviewers are hidden where they judge peers who could retaliate (journals, classes, 360). Identities are open where reviewer and author share a goal and keep working together (code review, inspection).
 
-## 4. What Previewit needs
+## 4. What peerview.it needs
 
 | Capability | Status | Needed by |
 |---|---|---|
@@ -341,9 +341,9 @@ Three patterns stand out:
 | Party as the review unit | Proposed; blocked by ADR 0014 | Multi-source feedback, teammate evaluation, clinical |
 | Aggregate-only release with a minimum number of raters | Proposed | Multi-source feedback |
 | Review across organizations | Deferred (ADR 0006) | Firm-on-firm, journal |
-| Live meetings | Out of scope; Previewit is asynchronous | Inspection, grant funding |
+| Live meetings | Out of scope; peerview.it is asynchronous | Inspection, grant funding |
 
-For meeting-based review designs Previewit can still carry the asynchronous parts: preparation, the issue log as Annotations, rework and follow-up.
+For meeting-based review designs peerview.it can still carry the asynchronous parts: preparation, the issue log as Annotations, rework and follow-up.
 
 ADR 0017 delivered the first step: reviewers who are not authors, which eight of the ten review designs need. **Suggested order from here:** (1) Sign-off with a second level, which opens journals, conferences and inspections; (2) Party as the review unit, which opens teammate evaluation, the nearest neighbour of the first market; (3) automatic allocation over a separate reviewer pool, for calls too large to pair by Invitation.
 

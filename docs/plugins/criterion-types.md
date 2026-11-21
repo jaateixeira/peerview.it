@@ -1,6 +1,6 @@
 # Writing a criterion type
 
-A criterion type is one kind of question in a rubric. The built-ins are `numeric`, `levels`, `yes_no` and `text` (`src/previewit/plugins/criteria.py`). The API is not stable before v0.2.
+A criterion type is one kind of question in a rubric. The built-ins are `numeric`, `levels`, `yes_no` and `text` (`src/peerview/plugins/criteria.py`). The API is not stable before v0.2.
 
 ```python
 class CriterionType(Protocol):
@@ -24,5 +24,5 @@ class CriterionType(Protocol):
 - `render_html` returns trusted HTML for the reviewer's input named `name`, showing `value` (a saved answer) when given. Escape every string that came from the author or the reviewer.
 - `check_answer` validates what a reviewer submitted (a string) and returns it normalised, or `""` for no answer. Raise `CriterionError("a message for the reviewer")`. Answers are stored as these strings.
 - `score` turns a normalised answer into a number, or `None` when the answer is not a score.
-- Register it in `pyproject.toml` under `[project.entry-points."previewit.plugins"]`, for example `mytype = "my_package.module:MyType"`. Restart after installing.
-- Plugins may import `previewit.application` and `previewit.domain`, never `previewit.adapters` (checked by `make layers`). The core never branches on a type key.
+- Register it in `pyproject.toml` under `[project.entry-points."peerview.plugins"]`, for example `mytype = "my_package.module:MyType"`. Restart after installing.
+- Plugins may import `peerview.application` and `peerview.domain`, never `peerview.adapters` (checked by `make layers`). The core never branches on a type key.

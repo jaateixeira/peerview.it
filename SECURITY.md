@@ -1,6 +1,6 @@
 # Security policy
 
-Previewit handles sensitive review data and relies on reviewer anonymity, so we take reports seriously.
+peerview.it handles sensitive review data and relies on reviewer anonymity, so we take reports seriously.
 
 **Please report vulnerabilities privately** using GitHub's "Report a vulnerability" button (Security → Advisories) on this repository. Do not open a public issue.
 

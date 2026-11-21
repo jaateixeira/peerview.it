@@ -1,6 +1,6 @@
 # Domain model
 
-Source: `PLAN.md` section 2. Classes marked `built` exist in `src/previewit/domain/`; the rest are planned.
+Source: `PLAN.md` section 2. Classes marked `built` exist in `src/peerview/domain/`; the rest are planned.
 
 ## Tenancy and parties
 
