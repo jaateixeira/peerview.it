@@ -56,6 +56,13 @@ class IdentityMask:
         found = self._users.get_many(list(dict.fromkeys(user_ids)))
         return {uid: user.display_name for uid, user in found.items()}
 
+    def belongs(self, actor: UserId, party: Party) -> bool:
+        """Whether this person is the party, or a member of the group."""
+        if isinstance(party, UserParty):
+            return party.user_id == actor
+        group = self._groups.get_group(GroupId(party.group_id))
+        return group is not None and actor in group.members
+
     # -- names under an anonymity policy ------------------------------------------------------
 
     def author(

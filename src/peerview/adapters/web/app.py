@@ -196,7 +196,9 @@ def build_app(
 
     kit = WebKit(templates, settings)
     app.include_router(build_docs_router())
-    app.include_router(build_tenancy_router(tenancy=tenancy, kit=kit))
+    app.include_router(
+        build_tenancy_router(tenancy=tenancy, kit=kit, anonymous_spaces=rounds.anonymous_spaces)
+    )
     app.include_router(build_calls_router(calls=calls, rubrics=rubrics, kit=kit))
     app.include_router(build_rubrics_router(rubrics=rubrics, kit=kit))
     app.include_router(

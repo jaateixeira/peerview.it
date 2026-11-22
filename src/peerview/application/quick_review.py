@@ -21,13 +21,18 @@ from peerview.domain.calls import CallAccess, CallId, InvalidCall, SubmissionId,
 from peerview.domain.identity import Email, UserId
 from peerview.domain.invitations import InvalidInvitation
 from peerview.domain.policy import Action
-from peerview.domain.rounds import RoundId
+from peerview.domain.rounds import DEFAULT_ANONYMITY, RoundId
 from peerview.domain.tenancy import MAX_NAME_LENGTH, OrgRole, Role, SpaceId
 
 DEFAULT_DAYS = 14
 MAX_DAYS = 365
 DUE_TIME = time(16, 0)  # reviews are due at 16:00 unless the organizer says otherwise
 GENERAL_PRESET = "general"
+
+
+# What an author may choose when they ask for reviews themselves (ADR 0029): they never see
+# who wrote which review, and they may hide their own name from the reviewers too.
+AUTHOR_ANONYMITY = (DEFAULT_ANONYMITY, "double_anonymous")
 
 
 class InvalidReviewRequest(ValueError):
@@ -44,6 +49,7 @@ class ReviewRequest:
     due: datetime | None = None  # when the reviews are due; two weeks from today if empty
     due_time: time = DUE_TIME  # the time of day for the default due date
     zone: tzinfo = UTC  # the organizer's time zone, for the default due date
+    anonymity_key: str = DEFAULT_ANONYMITY  # one of AUTHOR_ANONYMITY
 
 
 def default_due(now: datetime, zone: tzinfo, at: time = DUE_TIME) -> datetime:
@@ -97,6 +103,8 @@ class QuickReviewService:
             raise InvalidReviewRequest("Log in first.")
         if not request.reviewers:
             raise InvalidReviewRequest("Add at least one reviewer's email address.")
+        if request.anonymity_key not in AUTHOR_ANONYMITY:
+            raise InvalidReviewRequest("Choose whether reviewers may see your name.")
         now = self._now()
         due = request.due or default_due(now, request.zone, request.due_time)
         if due <= now:
@@ -124,7 +132,7 @@ class QuickReviewService:
         submission = self._calls.submit(actor, call.id, title=title, upload=upload)
         round_ = self._rounds.create_round(
             actor, call.id, per_submission=min(len(request.reviewers), 5),
-            strategy_key="manual", closes_at=due,
+            strategy_key="manual", closes_at=due, anonymity_key=request.anonymity_key,
         )  # fmt: skip
 
         invites: list[InviteResult] = []

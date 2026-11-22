@@ -300,6 +300,8 @@ class ReviewsService:
         view = self._tenancy.space_view(actor, call.space_id)  # NotFound for outsiders
         manager = Permission.ROUNDS_MANAGE in view.permissions
         mine = self._is_reviewer(actor, task.reviewer)
+        if manager and not mine and self._authored(actor, task):
+            manager = False  # her own work's reviews: she reads them as its author (ADR 0029)
         if not mine and not manager:
             raise NotFound  # other people's tasks do not exist for you
         status = round_.status(self._now())
@@ -312,6 +314,10 @@ class ReviewsService:
             if status is RoundStatus.CLOSED:
                 raise ReviewClosed
         return Access(task, round_, call, mine, can_edit, manager)
+
+    def _authored(self, actor: UserId, task: ReviewTask) -> bool:
+        submission = self._calls.get_submission(task.submission_id)
+        return submission is not None and self._mask.belongs(actor, submission.author)
 
     def _is_reviewer(self, actor: UserId, party: Party) -> bool:
         if isinstance(party, UserParty):

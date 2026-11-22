@@ -42,7 +42,7 @@
           <td>{{ t.reviewer_label }}</td>
           <td>{{ t.submission_title }} <small>(revision {{ t.task.revision_number }})</small></td>
           <td>{{ t.author_label }}</td>
-          <td><a href="/tasks/{{ t.task.id }}">{{ t.state }}</a></td>
+          <td>{% if t.own_work %}{{ t.state }}{% else %}<a href="/tasks/{{ t.task.id }}">{{ t.state }}</a>{% endif %}</td>
           <td>
             <form method="post" action="/rounds/{{ r.id }}/tasks/{{ t.task.id }}/delete" hx-boost="false" class="inline">
               <input type="hidden" name="csrf" value="{{ csrf_token }}">

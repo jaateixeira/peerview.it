@@ -46,7 +46,7 @@ META_CAPABILITIES = "io.modelcontextprotocol/clientCapabilities"
 META_SERVER = "io.modelcontextprotocol/serverInfo"
 
 TOOL_NAME = "prepare_review_request"
-ARGUMENTS = ("title", "web_address", "text", "reviewers", "message", "due_date")
+ARGUMENTS = ("title", "web_address", "text", "reviewers", "message", "due_date", "hide_author")
 
 
 @dataclass(frozen=True)
@@ -137,6 +137,12 @@ class McpServer:
                         "type": text,
                         "format": "date",
                         "description": "When reviews are due, YYYY-MM-DD. Optional: two weeks.",
+                    },
+                    "hide_author": {
+                        "type": "boolean",
+                        "description": "True to hide the person's name from the reviewers too "
+                        "(double-anonymous review). Optional: by default reviewers see who asked, "
+                        "and the person never sees who wrote which review.",
                     },
                 },
                 "additionalProperties": False,
@@ -274,6 +280,9 @@ class McpServer:
             if not isinstance(value, str):
                 return _tool_error(f"{key} must be a string.")
             values[key] = value
+        hide_author = arguments.get("hide_author", False)
+        if not isinstance(hide_author, bool):
+            return _tool_error("hide_author must be true or false.")
         reviewers = arguments.get("reviewers", [])
         if isinstance(reviewers, str):
             reviewers = [reviewers]  # "a@x.fi, b@x.fi" is split by the address parser
@@ -283,6 +292,7 @@ class McpServer:
             token, prepared = self._prepared.prepare(
                 title=values["title"], web_address=values["web_address"], text=values["text"],
                 reviewers=reviewers, message=values["message"], due=values["due_date"],
+                hide_author=hide_author,
             )  # fmt: skip
         except InvalidPreparedRequest as problem:
             return _tool_error(str(problem))

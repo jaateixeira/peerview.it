@@ -5,8 +5,8 @@
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
   {% if spaces %}
   <ul class="list">
-    {% for space, org in spaces %}
-    <li><a href="/spaces/{{ space.id }}">{{ space.name }}</a> <small>{{ org.name }}</small></li>
+    {% for space, org, anonymous in spaces %}
+    <li><a href="/spaces/{{ space.id }}">{{ space.name }}</a>{% if not anonymous %} <small>{{ org.name }}</small>{% endif %}</li>
     {% endfor %}
   </ul>
   {% else %}

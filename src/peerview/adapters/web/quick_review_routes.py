@@ -47,6 +47,7 @@ from peerview.domain.email_list import (
     parse_typed,
 )
 from peerview.domain.identity import User
+from peerview.domain.rounds import DEFAULT_ANONYMITY
 
 # One byte more than the largest file peerview.it reviews, so the plugin can say "too large".
 READ_LIMIT = 10_000_001
@@ -65,6 +66,7 @@ class Draft:
     due: str = ""
     due_time: str = "16:00"
     send_emails: bool = True
+    hide_author: bool = False  # double-anonymous: reviewers do not see the author (ADR 0029)
 
 
 def emails_text(found: EmailList) -> str:
@@ -170,6 +172,7 @@ def build_quick_review_router(
             due=found.due,
             due_time=found.due_time or "16:00",
             kept_file=found.file_name if found.file_content is not None else "",
+            hide_author=found.hide_author,
         )
         page, problem = (None, None)
         if found.web_address:
@@ -269,6 +272,7 @@ def build_quick_review_router(
                     file_name=picked[0] if picked else "",
                     file_content=picked[1] if picked else None,
                     ai_models=ai_models,  # the models only: keys are never kept
+                    hide_author=draft.hide_author,
                 )
             )  # fmt: skip
         except InvalidPreparedRequest as problem:
@@ -295,6 +299,7 @@ def build_quick_review_router(
             due=kit.text(form, "due").strip(),
             due_time=kit.text(form, "due_time").strip() or "16:00",
             send_emails=kit.text(form, "send_emails") == "on",
+            hide_author=kit.text(form, "anonymity") == "double_anonymous",
         )
 
         token = kit.text(form, "prepared")  # prepared by an assistant or kept for a visitor
@@ -379,6 +384,9 @@ def build_quick_review_router(
                         due=due,
                         due_time=due_time,
                         zone=zone,
+                        anonymity_key=(
+                            "double_anonymous" if draft.hide_author else DEFAULT_ANONYMITY
+                        ),
                     ),
                 )
             )

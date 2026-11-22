@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from datetime import timedelta
 
 from fastapi import APIRouter, Request
@@ -41,9 +42,19 @@ def current_user(request: Request) -> User:
     return user
 
 
-def build_tenancy_router(*, tenancy: TenancyService, kit: WebKit) -> APIRouter:
+def build_tenancy_router(
+    *,
+    tenancy: TenancyService,
+    kit: WebKit,
+    anonymous_spaces: Callable[[Iterable[SpaceId]], set[SpaceId]] | None = None,
+) -> APIRouter:
+    """`anonymous_spaces` names the spaces whose rounds hide people (ADR 0029): there,
+    people who do not manage members see no member list and no organization name."""
     router = APIRouter()
     run = run_in_threadpool
+
+    def anonymous(ids: Iterable[SpaceId]) -> set[SpaceId]:
+        return anonymous_spaces(ids) if anonymous_spaces is not None else set()
 
     def space_page(
         request: Request,
@@ -58,11 +69,15 @@ def build_tenancy_router(*, tenancy: TenancyService, kit: WebKit) -> APIRouter:
         view = tenancy.space_view(user.id, sid)
         members = tenancy.members(user.id, sid)
         perms = {p.value for p in view.permissions}
+        hidden = Permission.MEMBERS_MANAGE not in view.permissions and bool(anonymous([sid]))
         invites = (
             tenancy.invites(user.id, sid) if Permission.MEMBERS_INVITE in view.permissions else []
         )
         names = {m.user_id: m.display_name for m in members}
         groups = tenancy.groups(user.id, sid)
+        if hidden:  # only my own group, and nobody else
+            groups = [g for g in groups if user.id in g.members]
+            members = [m for m in members if m.user_id == user.id]
         return kit.render(
             request,
             "space.html",
@@ -81,6 +96,7 @@ def build_tenancy_router(*, tenancy: TenancyService, kit: WebKit) -> APIRouter:
                 "error": error,
                 "new_link": new_link,
                 "me": user.id,
+                "anonymous": hidden,
             },
             status,
         )
@@ -113,13 +129,21 @@ def build_tenancy_router(*, tenancy: TenancyService, kit: WebKit) -> APIRouter:
         request: Request, user: User, error: str | None = None, status: int = 200
     ) -> Response:
         orgs = tenancy.my_organizations(user.id)
+        spaces = tenancy.my_spaces(user.id)
+        owned = {o.id for o, r in orgs if r is OrgRole.OWNER}
+        hidden = anonymous(s.id for s, o in spaces if o.id not in owned)
+        hidden_orgs = {s.org_id for s, _ in spaces if s.id in hidden}
         return kit.render(
             request,
             "spaces.html",
             {
                 "page_title": "Your spaces",
-                "spaces": tenancy.my_spaces(user.id),
-                "orgs": [(o, r is OrgRole.OWNER) for o, r in orgs],
+                "spaces": [(s, o, s.id in hidden) for s, o in spaces],
+                "orgs": [
+                    (o, r is OrgRole.OWNER)
+                    for o, r in orgs
+                    if r is OrgRole.OWNER or o.id not in hidden_orgs
+                ],
                 "presets": [(p.key, p.label) for p in PRESETS.values()],
                 "error": error,
             },

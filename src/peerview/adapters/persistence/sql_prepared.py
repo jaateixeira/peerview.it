@@ -30,6 +30,7 @@ class SqlPreparedRequestRepository:
             "source": prepared.source,
             "due_time": prepared.due_time,
             "ai_models": list(prepared.ai_models),
+            "hide_author": prepared.hide_author,
         }
         with self._engine.begin() as conn:
             conn.execute(
@@ -56,7 +57,7 @@ class SqlPreparedRequestRepository:
             data["title"], data["web_address"], data["text"], tuple(data["reviewers"]),
             data["message"], data["due"], _utc(row.created_at), _utc(row.expires_at),
             data.get("source", ASSISTANT), row.file_name or "", content, data.get("due_time", ""),
-            tuple(data.get("ai_models", ())),
+            tuple(data.get("ai_models", ())), bool(data.get("hide_author", False)),
         )  # fmt: skip
 
     def delete(self, token_hash: str) -> None:

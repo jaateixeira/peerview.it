@@ -59,6 +59,7 @@ class PreparedRequest:
     file_content: bytes | None = None  # a visitor's file, kept for an hour
     due_time: str = ""  # "HH:MM" when a visitor chose another time than 16:00
     ai_models: tuple[str, ...] = ()  # AI models a visitor chose (ADR 0025); keys are never kept
+    hide_author: bool = False  # hide the author's name from reviewers too (ADR 0029)
 
 
 class PreparedRequestRepository(Protocol):
@@ -94,6 +95,7 @@ class PreparedRequestsService:
         reviewers: Sequence[str] = (),
         message: str = "",
         due: str = "",
+        hide_author: bool = False,
     ) -> tuple[str, PreparedRequest]:
         """Keep an AI assistant's request for the person to check. Returns the secret token."""
         now = self._now()
@@ -119,7 +121,7 @@ class PreparedRequestsService:
         due = self._check_due(due.strip(), now)
         prepared = PreparedRequest(
             title, address, text, reviewers_found, message, due, now,
-            now + timedelta(days=PREPARED_DAYS),
+            now + timedelta(days=PREPARED_DAYS), hide_author=hide_author,
         )  # fmt: skip
         return self._keep(prepared), prepared
 
@@ -136,6 +138,7 @@ class PreparedRequestsService:
         file_name: str = "",
         file_content: bytes | None = None,
         ai_models: Sequence[str] = (),
+        hide_author: bool = False,
     ) -> str:
         """Keep a form filled in before signing in, file included, for an hour (ADR 0024).
         The form itself has checked what is cheap to check; the rest is checked on sending."""
@@ -150,6 +153,7 @@ class PreparedRequestsService:
             now + timedelta(hours=VISITOR_HOURS), VISITOR, (file_name or "")[:255],
             file_content, due_time.strip() if _TIME.fullmatch(due_time.strip()) else "",
             tuple(dict.fromkeys(m.strip()[:200] for m in ai_models if m.strip()))[:MAX_AI_MODELS],
+            hide_author,
         )  # fmt: skip
         return self._keep(prepared)
 

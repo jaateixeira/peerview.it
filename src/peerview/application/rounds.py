@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from datetime import datetime
 
@@ -20,6 +20,7 @@ from peerview.application.ports import (
 )
 from peerview.application.tenancy import Forbidden, NotFound, TenancyService
 from peerview.domain.allocation import Problem, Slot, conflicts
+from peerview.domain.anonymity import Viewer
 from peerview.domain.calls import Call, CallId, Submission, SubmissionId
 from peerview.domain.identity import UserId
 from peerview.domain.party import GroupParty, Party, UserParty
@@ -48,6 +49,7 @@ class TaskView:
     author_label: str  # this view is for organizers, who see everyone
     submission_title: str
     state: str  # "not started", "draft" or "submitted"
+    own_work: bool = False  # the organizer's own: reviewers masked, no link (ADR 0029)
 
 
 @dataclass(frozen=True)
@@ -226,11 +228,27 @@ class RoundsService:
 
     def rounds(self, actor: UserId, call_id: CallId) -> list[RoundView]:
         call = self._managed_call(actor, call_id)
-        return [self._view(r, call) for r in self._repo.rounds_of_call(call.id)]
+        return [self._view(actor, r, call) for r in self._repo.rounds_of_call(call.id)]
 
     def round_view(self, actor: UserId, round_id: RoundId) -> RoundView:
         round_, call = self._managed_round(actor, round_id)
-        return self._view(round_, call)
+        return self._view(actor, round_, call)
+
+    def anonymous_spaces(self, space_ids: Iterable[SpaceId]) -> set[SpaceId]:
+        """Spaces with a round that hides authors from reviewers or reviewers from one
+        another. People who do not manage such a space see neither its member list nor its
+        organization's name, which may carry an author's name (ADR 0029)."""
+        found: set[SpaceId] = set()
+        for space_id in dict.fromkeys(space_ids):
+            for call in self._calls.calls_in_space(space_id):
+                for round_ in self._repo.rounds_of_call(call.id):
+                    policy = round_.anonymity
+                    if not (
+                        policy.author_visible_to_reviewer
+                        and policy.reviewer_visible_to_other_reviewers
+                    ):
+                        found.add(space_id)
+        return found
 
     # -- allocation -------------------------------------------------------
 
@@ -431,24 +449,34 @@ class RoundsService:
     def _seed(self) -> int:
         return int.from_bytes(hashlib.sha256(self._new_id().encode()).digest()[:4], "big")
 
-    def _view(self, round_: ReviewRound, call: Call) -> RoundView:
+    def _view(self, actor: UserId, round_: ReviewRound, call: Call) -> RoundView:
         strategy = self._registry.get(round_.strategy_key)
         submissions = {s.id: s for s in self._repo_submissions(call)}
         tasks = self._repo.tasks_of_round(round_.id)
-        # Only organizers see this view, and they see everyone (ADR 0028).
+        # Only organizers see this view, and they see everyone (ADR 0028), except who
+        # reviews their own work: there they are its author (ADR 0029).
         names = self._mask.names(
             [t.reviewer for t in tasks] + [s.author for s in submissions.values()]
         )
+        own = {sid for sid, s in submissions.items() if self._mask.belongs(actor, s.author)}
+        labels = {t.id: names[t.reviewer] for t in tasks}
+        for sid in own:
+            mine = sorted((t for t in tasks if t.submission_id == sid), key=lambda t: t.id)
+            masked = self._mask.reviewers(
+                [t.reviewer for t in mine], round_.anonymity, Viewer.AUTHOR
+            )
+            labels.update({t.id: label for t, label in zip(mine, masked, strict=True)})
         started = {rv.task_id: rv for rv in self._reviews.reviews_in_round(round_.id)}
         views = [
             TaskView(
                 t,
-                names[t.reviewer],
+                labels[t.id],
                 names[submissions[t.submission_id].author],
                 submissions[t.submission_id].title,
                 "not started"
                 if t.id not in started
                 else ("submitted" if started[t.id].submitted else "draft"),
+                t.submission_id in own,
             )
             for t in tasks
             if t.submission_id in submissions

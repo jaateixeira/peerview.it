@@ -135,6 +135,19 @@ def test_a_visitors_choice_of_ai_models_is_kept_but_never_a_key(w: World):
     assert kept.ai_models == ("local/qwen3:8b", "anthropic/claude-sonnet-5-5", "a/b")  # three
 
 
+def test_the_choice_to_hide_the_authors_name_is_kept(w: World):  # ADR 0029
+    token = w.s.keep_for_visitor(
+        title="Essay", text="Hello", web_address="", reviewers=[], message="", due="",
+        hide_author=True,
+    )  # fmt: skip
+    kept = w.s.open(token)
+    assert kept is not None and kept.hide_author
+    token, prepared = w.s.prepare(text="x", hide_author=True)
+    assert prepared.hide_author and (w.s.open(token) or prepared).hide_author
+    _, usual = w.s.prepare(text="x")
+    assert not usual.hide_author
+
+
 def test_an_assistants_request_is_marked_as_such(w: World):
     _, prepared = w.s.prepare(text="x")
     assert prepared.source == ASSISTANT and prepared.file_content is None
