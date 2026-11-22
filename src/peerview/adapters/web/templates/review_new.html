@@ -68,6 +68,23 @@
     {% include "_ai_step.html" %}
 
     <fieldset class="card step">
+      <legend>Names</legend>
+      <p class="hint">You will not see which reviewer wrote which review: they appear as
+        Reviewer A, Reviewer B.</p>
+      <label class="check">
+        <input type="radio" name="anonymity" value="reviewers_hidden" {% if not draft.hide_author %}checked{% endif %}>
+        Reviewers see my name
+      </label>
+      <label class="check">
+        <input type="radio" name="anonymity" value="double_anonymous" {% if draft.hide_author %}checked{% endif %}>
+        Hide my name from the reviewers too <small>(double-anonymous)</small>
+      </label>
+      <p class="hint">If you hide your name, keep it out of the work and the few words for the
+        reviewers. peerview.it leaves it out of the invitation and removes it from a PDF's
+        properties.</p>
+    </fieldset>
+
+    <fieldset class="card step">
       <legend>Send it</legend>
       <label class="field">A few words for the reviewers <small>(optional)</small>
         <textarea name="cover_letter" rows="3" maxlength="2000">{{ draft.cover_letter }}</textarea>

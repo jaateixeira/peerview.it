@@ -81,7 +81,9 @@ def test_the_one_tool_is_described_with_its_inputs(h):
     [tool] = rpc(h, "tools/list").json()["result"]["tools"]
     assert tool["name"] == TOOL_NAME
     properties = tool["inputSchema"]["properties"]
-    assert set(properties) == {"title", "web_address", "text", "reviewers", "message", "due_date"}
+    assert set(properties) == {
+        "title", "web_address", "text", "reviewers", "message", "due_date", "hide_author"
+    }  # fmt: skip
     assert tool["inputSchema"]["additionalProperties"] is False
     assert tool["annotations"]["destructiveHint"] is False
     assert "sends nothing" in tool["description"]

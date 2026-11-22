@@ -139,8 +139,10 @@ class FeedbackService:
         if submission is None or call is None:
             raise NotFound
         view = self._tenancy.space_view(actor, submission.space_id)  # NotFound for outsiders
-        organizer = Permission.ROUNDS_MANAGE in view.permissions
-        if not organizer and not self._is_author(actor, submission):
+        author = self._is_author(actor, submission)
+        # An organizer reads the reviews of her own work as its author does (ADR 0029).
+        organizer = Permission.ROUNDS_MANAGE in view.permissions and not author
+        if not organizer and not author:
             raise NotFound
         viewer = Viewer.ORGANIZER if organizer else Viewer.AUTHOR
         rounds: list[RoundFeedback] = []

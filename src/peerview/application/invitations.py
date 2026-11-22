@@ -31,6 +31,7 @@ from peerview.application.rounds import slot_of
 from peerview.application.tenancy import Forbidden, NotFound, TenancyService, VerificationRequired
 from peerview.application.verification import hash_token
 from peerview.domain.allocation import conflicts
+from peerview.domain.anonymity import Viewer
 from peerview.domain.calls import Call, SubmissionId
 from peerview.domain.identity import User, UserId
 from peerview.domain.invitations import (
@@ -41,7 +42,7 @@ from peerview.domain.invitations import (
     clean_email,
     mask_email,
 )
-from peerview.domain.party import UserParty
+from peerview.domain.party import GroupParty, Party, UserParty
 from peerview.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
 from peerview.domain.rounds import ReviewRound, ReviewTask, RoundId, RoundStatus, TaskId
 from peerview.domain.tenancy import Permission, Role, SpaceId
@@ -68,6 +69,9 @@ class WrongEmail(Exception):
     def __init__(self, hint: str) -> None:
         super().__init__("this invitation is for another email address")
         self.hint = hint  # the invited address with most of it hidden
+
+
+ANONYMOUS_INVITER = "An author"  # who invites, when the author is hidden (ADR 0029)
 
 
 @dataclass(frozen=True)
@@ -227,18 +231,26 @@ class InvitationsService:
                 f"The cover letter can have up to {MAX_COVER_LETTER} characters."
             )
         space = self._tenancy_repo.get_space(inv.space_id)
-        who = sender.display_name
-        message = f"{who} writes:\n\n{letter}\n\n" if letter else ""
+        hidden = self._hides_inviter(round_, call, actor)
+        who = ANONYMOUS_INVITER if hidden else sender.display_name
+        message = f"{'The author' if hidden else who} writes:\n\n{letter}\n\n" if letter else ""
+        why = (
+            "Their name is hidden from you, and yours from them: this review is anonymous both "
+            "ways.\n\n"
+            if hidden
+            else ""
+        )
+        asked = "an author on peerview.it" if hidden else who
         self._mailer.send(
             inv.email.value,
             f"Invitation to review: {call.title}",
             f'Hello,\n\n{who} invited you to review in "{space.name if space else ""}": '
-            f"{call.title}, round {round_.number}.\n\n{message}"
+            f"{call.title}, round {round_.number}.\n\n{why}{message}"
             f"Open your invitation:\n{self._base_url}/i/{token}\n\n"
             f"The link is personal and works for {inv.email.value} only: sign up or log in with "
             f"this address and confirm it. It expires on {inv.expires_at:%Y-%m-%d}. "
-            f"You received this because {who} asked peerview.it to send it. If you do not know "
-            "them, ignore this mail.\n",
+            f"You received this because {asked} asked peerview.it to send it. If you did not "
+            "expect it, ignore this mail.\n",
         )
         self._repo.update_invitation(replace(inv, sent_at=self._now()))
         return inv.email.value
@@ -263,15 +275,29 @@ class InvitationsService:
         inviter = self._users.get(inv.created_by)
         if space is None or org is None:
             return None
+        hidden = self._hides_inviter(round_, call, inv.created_by)
         return InvitationPreview(
             call.title,
             round_.number,
             space.name,
-            org.name,
-            inviter.display_name if inviter else "Someone",
+            "" if hidden else org.name,  # an author's own organization carries their name
+            ANONYMOUS_INVITER if hidden else (inviter.display_name if inviter else "Someone"),
             mask_email(inv.email),
             len(inv.submission_ids),
         )
+
+    def _hides_inviter(self, round_: ReviewRound, call: Call, inviter: UserId) -> bool:
+        """An author who invites reviewers to a round that hides authors is not named to
+        them (ADR 0029). An organizer who is not an author is."""
+        if round_.anonymity.may_see_author(Viewer.REVIEWER):
+            return False
+        parties: list[Party] = [UserParty(inviter)]
+        parties += [
+            GroupParty(g.id)
+            for g in self._tenancy_repo.groups_in_space(call.space_id)
+            if inviter in g.members
+        ]
+        return bool(self._calls.submissions_of_parties(call.id, parties))
 
     def guests_allowed(self) -> bool:
         """False when the operator requires a verified email to review or join (config

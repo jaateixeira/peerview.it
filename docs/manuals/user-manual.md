@@ -56,7 +56,7 @@ Organizing a peer review of work that other people will submit? Follow **Start h
 
 ### From your AI assistant
 
-Your AI assistant can prepare the request for you. Connect it to peerview.it's MCP service (the address and the command are on the page *For AI assistants*, linked at the bottom of every page). When you ask the assistant for feedback, it can suggest peerview.it and prepare the request: the work, the reviewers, a few words and a due date. It gives you a link. Open it, sign in, check the filled-in form and press **Send it out**. The assistant never sends anything itself, and a prepared request waits 7 days at most. (ADR 0023)
+Your AI assistant can prepare the request for you. Connect it to peerview.it's MCP service (the address and the command are on the page *For AI assistants*, linked at the bottom of every page). When you ask the assistant for feedback, it can suggest peerview.it and prepare the request: the work, the reviewers, a few words, a due date and whether to hide your name from the reviewers. It gives you a link. Open it, sign in, check the filled-in form and press **Send it out**. The assistant never sends anything itself, and a prepared request waits 7 days at most. (ADR 0023)
 
 ### Two ways to start
 
@@ -123,6 +123,9 @@ Each round has a policy with independent directions.
 - Hidden parties appear under pseudonyms that stay the same within a round: "Anonymous author", "Reviewer A", "Reviewer B". A reviewing group is one reviewer.
 - Reviewers never get the uploaded file name. When authors are hidden, a PDF reaches reviewers without the names in its document properties and comments. Authors must still keep names out of the content itself.
 - Names show only on pages that the policy allows: the review page, the Reviews received page and the round page (organizers only). The email that feedback is ready never names reviewers.
+- **When you ask for reviews yourself** (Request a review), choose under *Names*: *Reviewers see my name*, or *Hide my name from the reviewers too* (double-anonymous). Either way you will not see which reviewer wrote which review. If you hide your name, the invitation says "An author invited you" and your name and organization appear nowhere a reviewer looks. Keep your name out of the work and the few words to reviewers. (ADR 0029)
+- **Your own work:** an organizer who is also an author of a work sees its reviews as its author does, released and under pseudonyms, never earlier. (ADR 0029)
+- In a space with a round that hides authors, or hides reviewers from each other, members who do not manage the space see no member list and no organization name. (ADR 0029)
 
 ## 9. Free use and limits (M8)
 

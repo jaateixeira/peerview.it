@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="stack">
-  <p class="crumb"><a href="/spaces">Spaces</a> / {{ view.organization.name }}</p>
+  <p class="crumb"><a href="/spaces">Spaces</a>{% if not anonymous %} / {{ view.organization.name }}{% endif %}</p>
   <h1>{{ view.space.name }}</h1>
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
@@ -11,6 +11,7 @@
   {% if 'rubrics.manage' in perms %}<a class="btn btn-secondary" href="/spaces/{{ view.space.id }}/rubrics">Rubrics</a>{% endif %}</p>
 
   <h2>{{ word('members') | capitalize }}</h2>
+  {% if anonymous %}<p>Reviews in this space are anonymous, so other members are not listed.</p>{% endif %}
   <ul class="list">
     {% for m in members %}
     <li>
