@@ -16,7 +16,7 @@ def find(pattern: str, text: str) -> str:
 class Setup:
     """A course with a rubric, an essay by Sam, and Sue assigned to review it."""
 
-    def __init__(self, group=False):
+    def __init__(self, group=False, anonymity="reviewers_hidden", release="complete_or_due"):
         self.c = Course()
         self.sam = self.c.join_student("sam@x.fi", "Sam")
         self.sue = self.c.join_student("sue@x.fi", "Sue")
@@ -37,7 +37,7 @@ class Setup:
              page=self.call)  # fmt: skip
         self.sub = submit_text(self.sam, self.call, "On foxes", TEXT).headers["location"]
         post(self.c.teacher, f"{self.call}/rounds", {"per_submission": "1", "strategy": "manual",
-             "anonymity": "reviewers_hidden"}, page=f"{self.call}/rounds")  # fmt: skip
+             "anonymity": anonymity, "release": release}, page=f"{self.call}/rounds")  # fmt: skip
         page = self.c.teacher.get(f"{self.call}/rounds").text
         self.round = find(r"/rounds/(\w+)/edit", page)
         sub_id = find(r'<option value="(\w+)">On foxes', page)
@@ -68,7 +68,7 @@ class Setup:
 def test_the_reviewer_sees_the_work_beside_the_form():
     s = Setup()
     assert TEXT in s.page and "Clarity" in s.page and "Comment" in s.page
-    assert "Sam" not in s.page.split("<main")[1]  # the author is not named (anonymity default)
+    assert "By Sam." in s.page  # the default round hides reviewers, not authors (ADR 0028)
     assert 'hx-post="' + s.task + '/autosave"' in s.page
 
 

@@ -128,9 +128,9 @@ sequenceDiagram
     P->>P: Allocate: pure function of submissions, reviewers, constraints
     P-->>R: Review tasks
     R->>P: Annotate, score, submit
-    Note over P: Round closes
-    O->>P: Release feedback (or automatic release rule)
-    P-->>A: Feedback
+    Note over P: Every review in, or the due time (default rule, ADR 0028)
+    O->>P: Or: show authors the reviews now
+    P-->>A: Email once, then Feedback received (pseudonyms through IdentityMask)
     A->>P: Respond, submit revision
     Note over P: Next round targets the new revision
 ```

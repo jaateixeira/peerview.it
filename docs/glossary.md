@@ -75,6 +75,8 @@ An **Auditor** (Deferred) will audit the review process: read-only over reviews,
 | **Single-anonymous** | One side is hidden. Two directions exist, so we name the hidden side: **reviewers hidden** (default) and **authors hidden**. | Core | preset keys `reviewers_hidden`, `authors_hidden` | Plain "single-anonymous" is ambiguous in a system where authors can also review. |
 | **Double-anonymous** | Neither side sees the other. | Core | preset key `double_anonymous` | Was `double_blind` before ADR 0016. |
 | **Open review** | Everyone sees everyone. | Core | preset key `open` | |
+| **Pseudonym** | The name a hidden party goes by: **Anonymous author**, or **Reviewer A**, **Reviewer B**, ... for the reviewers of one Submission in one Round (ADR 0028). | Core | `IdentityMask`, `reviewer_pseudonym` | Stable within a Round. Not *alias* or *nickname*. |
+| **Release** | When the handed-in Reviews of a Submission reach its authors, by the Round's **release rule**: when every Review is in or at the due time (default), as each is handed in, or when an Organizer releases them (ADR 0028). Once released, always released. | Core | `ReviewRound.release_key`, `released_at`, `FeedbackService` | Not *publish* (Calls are published) or *share*. |
 | **Inspection** (formal review) | Structured review with roles, checklist, prescribed process and defect log. | Deferred | | Year 2, engineering and academic presets. Do not use "inspection" for ordinary review. |
 | **Walkthrough**, **over-the-shoulder**, **pair review** | Synchronous, informal modes. | Avoid | | Out of scope. peerview.it is asynchronous. |
 
@@ -107,7 +109,7 @@ An **Auditor** (Deferred) will audit the review process: read-only over reviews,
 |---|---|---|---|---|
 | **Organizer** | See section 1. Leads the process: opens Rounds, allocates, reads everything. | Core | `Permission.ROUNDS_MANAGE` | *Moderator* and *facilitator* describe live meetings and are not used. *Chair* is reserved for the academic-venue preset. |
 | **Recorder** (scribe) | One person who writes the group's response. | Deferred | | Today any Member of a reviewing Group may edit the shared Review, and `ReviewEdit` records who did. |
-| **Author-as-observer** | The author listens and does not defend the work. | Presentation | | A norm for help text. In an asynchronous system it is enforced by release rules (M6): authors see Reviews only when released. |
+| **Author-as-observer** | The author listens and does not defend the work. | Presentation | | A norm for help text. In an asynchronous system it is enforced by release rules (ADR 0028): authors see Reviews only when released. |
 | **Re-review** | A later Round on a newer Revision, which checks that earlier feedback was dealt with. | Core | `ReviewRound` (round 2 allocates against the then-latest Revisions) | Say *re-review*, not *reinspection* or *follow-up*. |
 
 ## 6. Feedback principles (source section E)
@@ -122,7 +124,7 @@ These are guidance for the words we write (help text, rubric templates, empty st
 | **Balance of positive and negative** | Presentation | The Essay feedback template includes "What worked well?" next to the improvement prompts. |
 | **Feedback sandwich** | Presentation | Not enforced. Mechanical praise is worse than none, so there is no required "positive" field. |
 
-**Feedback** as a noun means what an author *receives*: the Reviews and Annotations released to them (the "feedback received" page, M6). A reviewer writes a **Review**, never "gives feedback" in code.
+**Feedback** as a noun means what an author *receives*: the Reviews and Annotations released to them (the "Feedback received" page, ADR 0028). A reviewer writes a **Review**, never "gives feedback" in code.
 
 ## 7. Cognitive, social and ethical concepts (source section F)
 
@@ -132,7 +134,7 @@ These are guidance for the words we write (help text, rubric templates, empty st
 | **Conflict of interest** (COI) | A *declared* stake in the outcome. Disclosure and recusal. | Deferred | | Year 2. When built it feeds allocation Conflicts. |
 | **Edit conflict** | Two people saved the same Review from the same version. | Core | `EditConflict` | Was `ReviewConflict` before ADR 0016. Never plain "conflict". |
 | **Reviewer bias** | Confirmation, preference and territorial bias. | Not modelled | | Mitigated by anonymity, rubrics and (later) calibration. |
-| **Anonymity and accountability** | Anonymity protects candor, but the organizer can always see who wrote what. | Core | `AnonymityPolicy.reveal_at`, `ReviewEdit` | Every display of a name goes through `IdentityMask` (M6). |
+| **Anonymity and accountability** | Anonymity protects candor, but the organizer can always see who wrote what. | Core | `AnonymityPolicy.reveal_at`, `ReviewEdit`, `IdentityMask` | Every display of a name goes through `IdentityMask` (ADR 0028). |
 | **Psychological safety**, **group accountability** | Honest feedback without fear, and visible participation. | Presentation | `ReviewEdit` shows who edited a group Review | Help text only. |
 
 ## 8. Rounds, loops and lifecycle (source section G)

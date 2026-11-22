@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 
 from peerview.application.allocation import AllocationStrategy, StrategyRegistry
+from peerview.application.identity_mask import IdentityMask
 from peerview.application.ports import (
     CallRepository,
     DuplicateRound,
@@ -22,6 +23,7 @@ from peerview.domain.allocation import Problem, Slot, conflicts
 from peerview.domain.calls import Call, CallId, Submission, SubmissionId
 from peerview.domain.identity import UserId
 from peerview.domain.party import GroupParty, Party, UserParty
+from peerview.domain.release import DEFAULT_RELEASE, RELEASE_OPTIONS
 from peerview.domain.rounds import (
     ANONYMITY_PRESETS,
     DEFAULT_ANONYMITY,
@@ -33,6 +35,7 @@ from peerview.domain.rounds import (
     TaskId,
     anonymity_policy,
     clean_per_submission,
+    release_rule,
     validate_window,
 )
 from peerview.domain.tenancy import GroupId, Permission, Role, SpaceId
@@ -42,7 +45,7 @@ from peerview.domain.tenancy import GroupId, Permission, Role, SpaceId
 class TaskView:
     task: ReviewTask
     reviewer_label: str
-    author_label: str  # organizers see everyone; M6 adds masking for the other viewers
+    author_label: str  # this view is for organizers, who see everyone
     submission_title: str
     state: str  # "not started", "draft" or "submitted"
 
@@ -61,6 +64,7 @@ class RoundView:
     status: RoundStatus
     strategy_label: str
     anonymity_label: str
+    release_label: str  # when authors see the reviews (ADR 0028)
     automatic: bool
     tasks: list[TaskView]
     gaps: list[Gap]
@@ -125,6 +129,7 @@ class RoundsService:
         self._tenancy = tenancy
         self._tenancy_repo = tenancy_repo
         self._users = users
+        self._mask = IdentityMask(users, tenancy_repo)
         self._registry = registry
         self._new_id = new_id
         self._now = clock
@@ -138,6 +143,11 @@ class RoundsService:
     def anonymity_options() -> list[tuple[str, str]]:
         return [(key, label) for key, (label, _) in ANONYMITY_PRESETS.items()]
 
+    @staticmethod
+    def release_options() -> list[tuple[str, str]]:
+        """When authors see the reviews (ADR 0028)."""
+        return list(RELEASE_OPTIONS.items())
+
     # -- rounds -----------------------------------------------------------
 
     def create_round(
@@ -150,10 +160,12 @@ class RoundsService:
         anonymity_key: str = DEFAULT_ANONYMITY,
         opens_at: datetime | None = None,
         closes_at: datetime | None = None,
+        release_key: str = DEFAULT_RELEASE.value,
     ) -> ReviewRound:
         call = self._managed_call(actor, call_id)
         self._registry.get(strategy_key)  # UnknownStrategy for a bad key
         anonymity_policy(anonymity_key)
+        release_rule(release_key)
         validate_window(opens_at, closes_at)
         per = clean_per_submission(per_submission)
         for _attempt in range(2):  # two organizers creating at once: take the next number
@@ -169,6 +181,7 @@ class RoundsService:
                 anonymity_key,
                 opens_at,
                 closes_at,
+                release_key,
             )
             try:
                 self._repo.add_round(round_)
@@ -187,10 +200,12 @@ class RoundsService:
         anonymity_key: str,
         opens_at: datetime | None,
         closes_at: datetime | None,
+        release_key: str | None = None,
     ) -> ReviewRound:
         round_, _ = self._managed_round(actor, round_id)
         self._registry.get(strategy_key)
         anonymity_policy(anonymity_key)
+        release_rule(release_key or round_.release_key)
         validate_window(opens_at, closes_at)
         updated = replace(
             round_,
@@ -199,6 +214,7 @@ class RoundsService:
             anonymity_key=anonymity_key,
             opens_at=opens_at,
             closes_at=closes_at,
+            release_key=release_key or round_.release_key,
         )
         self._repo.update_round(updated)
         return updated
@@ -415,30 +431,20 @@ class RoundsService:
     def _seed(self) -> int:
         return int.from_bytes(hashlib.sha256(self._new_id().encode()).digest()[:4], "big")
 
-    def _label(self, party: Party, users: dict[UserId, str], groups: dict[GroupId, str]) -> str:
-        if isinstance(party, UserParty):
-            return users.get(UserId(party.user_id), "Unknown")
-        return groups.get(GroupId(party.group_id), "Unknown group")
-
     def _view(self, round_: ReviewRound, call: Call) -> RoundView:
         strategy = self._registry.get(round_.strategy_key)
         submissions = {s.id: s for s in self._repo_submissions(call)}
         tasks = self._repo.tasks_of_round(round_.id)
-        people = self._users.get_many(
-            [
-                UserId(p.user_id)
-                for p in [t.reviewer for t in tasks] + [s.author for s in submissions.values()]
-                if isinstance(p, UserParty)
-            ]
+        # Only organizers see this view, and they see everyone (ADR 0028).
+        names = self._mask.names(
+            [t.reviewer for t in tasks] + [s.author for s in submissions.values()]
         )
-        names = {uid: u.display_name for uid, u in people.items()}
-        group_names = {g.id: g.name for g in self._tenancy_repo.groups_in_space(call.space_id)}
         started = {rv.task_id: rv for rv in self._reviews.reviews_in_round(round_.id)}
         views = [
             TaskView(
                 t,
-                self._label(t.reviewer, names, group_names),
-                self._label(submissions[t.submission_id].author, names, group_names),
+                names[t.reviewer],
+                names[submissions[t.submission_id].author],
                 submissions[t.submission_id].title,
                 "not started"
                 if t.id not in started
@@ -461,6 +467,7 @@ class RoundsService:
             round_.status(self._now()),
             strategy.label,
             ANONYMITY_PRESETS[round_.anonymity_key][0],
+            RELEASE_OPTIONS[round_.release_key],
             strategy.automatic,
             views,
             gaps,

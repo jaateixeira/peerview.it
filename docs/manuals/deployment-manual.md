@@ -202,7 +202,7 @@ location = /mcp {
 
 ## 8. Outgoing email
 
-peerview.it sends verification mails and invitations over SMTP only. Use a relay that signs for your domain, and publish its SPF, DKIM and DMARC records before the first invitation. Send yourself an invitation and check that the headers say `spf=pass` and `dkim=pass`.
+peerview.it sends verification mails, invitations and the notice that reviews are ready (ADR 0028) over SMTP only. Every five minutes each worker also releases the reviews of rounds whose due time has passed and mails their authors; a release is recorded in the database, so two workers never send the same notice twice. Use a relay that signs for your domain, and publish its SPF, DKIM and DMARC records before the first invitation. Send yourself an invitation and check that the headers say `spf=pass` and `dkim=pass`.
 
 ## 8a. AI reviews and the free models
 

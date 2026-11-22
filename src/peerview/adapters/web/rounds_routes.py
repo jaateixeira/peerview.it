@@ -23,13 +23,16 @@ from peerview.adapters.web.local_time import (
 from peerview.adapters.web.tenancy_routes import current_user
 from peerview.application.allocation import UnknownStrategy
 from peerview.application.calls import CallsService, ShareLimitReached
+from peerview.application.feedback import FeedbackService
 from peerview.application.invitations import InvitationsService
 from peerview.application.ports import MailError
 from peerview.application.rounds import RoundsService
+from peerview.application.tenancy import NotFound
 from peerview.domain.calls import CallId, SubmissionId
 from peerview.domain.identity import User
 from peerview.domain.invitations import InvalidInvitation
 from peerview.domain.party import GroupParty, Party, UserParty
+from peerview.domain.release import DEFAULT_RELEASE
 from peerview.domain.rounds import DEFAULT_ANONYMITY, InvalidRound, RoundId, TaskId
 from peerview.domain.tenancy import SpaceId
 
@@ -87,7 +90,12 @@ class FreshInvitation:
 
 
 def build_rounds_router(
-    *, rounds: RoundsService, calls: CallsService, invitations: InvitationsService, kit: WebKit
+    *,
+    rounds: RoundsService,
+    calls: CallsService,
+    invitations: InvitationsService,
+    kit: WebKit,
+    feedback: FeedbackService | None = None,
 ) -> APIRouter:
     router = APIRouter()
     run = run_in_threadpool
@@ -117,6 +125,9 @@ def build_rounds_router(
                 "strategies": rounds.strategies(),
                 "anonymity_options": rounds.anonymity_options(),
                 "default_anonymity": DEFAULT_ANONYMITY,
+                "release_options": rounds.release_options(),
+                "default_release": DEFAULT_RELEASE.value,
+                "can_release": feedback is not None,
                 "options": options,
                 "invited": invited,
                 "fresh": fresh,
@@ -169,6 +180,7 @@ def build_rounds_router(
             "per_submission": whole(kit.text(f, "per_submission"), 1),
             "strategy_key": kit.text(f, "strategy"),
             "anonymity_key": kit.text(f, "anonymity") or DEFAULT_ANONYMITY,
+            "release_key": kit.text(f, "release") or DEFAULT_RELEASE.value,
             "opens_at": parse_when(kit.text(f, "opens_at"), zone),
             "closes_at": parse_due(kit.text(f, "closes_on"), kit.text(f, "closes_time"), zone),
         }
@@ -208,6 +220,20 @@ def build_rounds_router(
         return await act(
             request, call_id, lambda u, _f: rounds.delete_round(u.id, RoundId(round_id))
         )
+
+    @router.post("/rounds/{round_id}/release")
+    async def release(request: Request, round_id: str) -> Response:
+        """An organizer shows authors the reviews handed in so far (ADR 0028)."""
+        if feedback is None:
+            raise NotFound
+        service = feedback
+        call_id = await run(call_of_sync, current_user(request), round_id)
+
+        def action(u: User, _f: FormData) -> str:
+            service.release(u.id, RoundId(round_id))
+            return "Authors can now read the reviews handed in so far. peerview.it emailed them."
+
+        return await act(request, call_id, action)
 
     @router.post("/rounds/{round_id}/allocate")
     async def allocate(request: Request, round_id: str) -> Response:

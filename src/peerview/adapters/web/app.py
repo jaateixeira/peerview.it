@@ -25,6 +25,7 @@ from peerview.adapters.web.ai_routes import build_ai_router, usd
 from peerview.adapters.web.auth_routes import build_auth_router
 from peerview.adapters.web.calls_routes import build_calls_router
 from peerview.adapters.web.docs_routes import build_docs_router
+from peerview.adapters.web.feedback_routes import build_feedback_router
 from peerview.adapters.web.invitations_routes import build_invitations_router
 from peerview.adapters.web.kit import WebKit
 from peerview.adapters.web.limits import RateLimiter
@@ -41,6 +42,7 @@ from peerview.application.ai_reviews import AiReviewsService
 from peerview.application.auth import AuthService
 from peerview.application.calls import CallsService, InvalidShare
 from peerview.application.credits import CreditsService
+from peerview.application.feedback import FeedbackService
 from peerview.application.invitations import (
     InvalidInvitationLink,
     InvitationsService,
@@ -73,15 +75,23 @@ SOURCE_URL = "https://github.com/jaateixeira/peerview.it"
 CLEANUP_SECONDS = 300.0  # how often forms kept for visitors and expired requests are deleted
 
 
-async def forget_expired_forever(prepared: PreparedRequestsService) -> None:
-    """Delete expired prepared requests and the files kept with them (ADR 0024), every few
-    minutes, so a visitor's file is gone soon after its hour even if nobody asks for it."""
+async def forget_expired_forever(
+    prepared: PreparedRequestsService, feedback: FeedbackService | None = None
+) -> None:
+    """Every few minutes: delete expired prepared requests and the files kept with them (ADR
+    0024), so a visitor's file is gone soon after its hour even if nobody asks for it; and
+    tell authors whose reviews the due time released (ADR 0028)."""
     while True:
         await asyncio.sleep(CLEANUP_SECONDS)
         try:
             await run_in_threadpool(prepared.forget_expired)
         except Exception:  # a bad moment for the database must not stop the loop
             logger.exception("Could not delete expired prepared requests")
+        if feedback is not None:
+            try:
+                await run_in_threadpool(feedback.send_due_notices)
+            except Exception:
+                logger.exception("Could not release the reviews of rounds that are due")
 
 
 def build_app(
@@ -102,10 +112,11 @@ def build_app(
     version: str = "dev",
     ai: AiReviewsService | None = None,
     credits: CreditsService | None = None,
+    feedback: FeedbackService | None = None,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        cleanup = asyncio.create_task(forget_expired_forever(prepared))
+        cleanup = asyncio.create_task(forget_expired_forever(prepared, feedback))
         try:
             yield
         finally:
@@ -189,7 +200,9 @@ def build_app(
     app.include_router(build_calls_router(calls=calls, rubrics=rubrics, kit=kit))
     app.include_router(build_rubrics_router(rubrics=rubrics, kit=kit))
     app.include_router(
-        build_rounds_router(rounds=rounds, calls=calls, invitations=invitations, kit=kit)
+        build_rounds_router(
+            rounds=rounds, calls=calls, invitations=invitations, kit=kit, feedback=feedback
+        )
     )
     app.include_router(
         build_invitations_router(
@@ -197,6 +210,8 @@ def build_app(
         )
     )
     app.include_router(build_reviews_router(reviews=reviews, kit=kit))
+    if feedback is not None:
+        app.include_router(build_feedback_router(feedback=feedback, kit=kit))
     app.include_router(
         build_quick_review_router(
             quick=quick,

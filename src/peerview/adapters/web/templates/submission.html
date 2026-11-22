@@ -8,6 +8,7 @@
   {% if view.guest %}<p class="notice" role="status">You are viewing this through a share link.</p>{% endif %}
   {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
 
+  {% if view.sees_feedback %}<p><a class="btn btn-secondary" href="/submissions/{{ sub.id }}/feedback">Reviews received</a></p>{% endif %}
   <div class="card artifact">{{ body | safe }}</div>
   <p><a href="{{ raw_url }}">Open the original</a></p>
 

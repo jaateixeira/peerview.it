@@ -7,6 +7,7 @@
 
   <p><a class="btn" href="/spaces/{{ view.space.id }}/calls">{{ word('calls') | capitalize }}</a>
   <a class="btn btn-secondary" href="/spaces/{{ view.space.id }}/reviews">My reviews</a>
+  <a class="btn btn-secondary" href="/spaces/{{ view.space.id }}/feedback">Feedback received</a>
   {% if 'rubrics.manage' in perms %}<a class="btn btn-secondary" href="/spaces/{{ view.space.id }}/rubrics">Rubrics</a>{% endif %}</p>
 
   <h2>{{ word('members') | capitalize }}</h2>

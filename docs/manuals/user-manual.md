@@ -80,11 +80,11 @@ Use the hosted site. Sign-up asks for the minimum. Students and reviewers never 
 1. **Create a space** and invite members by link. Tick the roles the link gives: organizer, author, reviewer (a participant is usually author and reviewer). Change a member's roles later on the space page. Form groups if groups submit or review. (M1)
 2. **Call for authors:** title, instructions, accepted type (text, PDF or web page), deadline, and who may submit: public or protected. Publish, copy the link and send it. For a protected call, create a link with a token for each group you invite; you can revoke it and send a new one. Anyone who opens the link and verifies their email becomes an author in the space, so give a large public call a space of its own. (M2, MA)
 3. **Build a rubric:** criteria with a scale (numeric, levels with descriptions, yes/no, free text) and optional weights. Rubrics are reusable. (M3)
-4. **Configure the round:** opening and closing time, anonymity, reviews per submission, allocation (random, round-robin or manual). (M4)
+4. **Configure the round:** opening and closing time, anonymity, reviews per submission, allocation (random, round-robin or manual), and when authors see the reviews (**Authors see the reviews**). (M4, ADR 0028)
 5. **Allocate.** peerview.it never allocates a party its own work or its own group's work, and balances the load. Adjust by hand if needed. (M4)
 6. **Call for reviewers:** on the round page, choose **Invite a reviewer by email**, tick the work they should review (optional) and create the invitation. peerview.it then shows the personal link (shown once) and asks whether it should email it. If you say yes, write a short cover letter that goes above the link; the mail is sent in your name, so your own email must be verified, and each invitation is mailed once. Or copy the link and send it yourself. Reviewers may be members of the space or outsiders. You can revoke a link until it is used. Each invitation counts toward your sharing limit. (MA)
 7. **Follow progress:** who has submitted, who has reviewed. (M5)
-8. **Release feedback** by hand or by rule (for example when the round closes). (M6)
+8. **Release feedback.** By default authors see a work's reviews when every review is in, or at the due time, whichever comes first. You can choose *as each review is handed in* or *when an organizer releases them* instead, and press **Show authors the reviews now** on the round page at any time. Released feedback stays released, and each author gets one email per round. On a work's **Reviews received** page you see every review handed in, with reviewers' names, before authors do. (ADR 0028)
 9. **Further rounds:** authors revise; the next round targets the new revision, and reviewers see the earlier reviews and the author's response. (M6)
 10. **Export scores** as CSV, for example for the Moodle gradebook. (M7)
 
@@ -93,8 +93,8 @@ In Moodle, paste the space or call link into the course. Launch from Moodle with
 ## 6. Author (M2, M6)
 
 1. Open the call link you were sent (public or protected), verify your email, press **Join and submit**, and submit your text, PDF or the address of your web page. In a group, one member submits for all.
-2. When feedback is released, read comments in place on your work and the scores per criterion.
-3. Write a response to each review. If there is another round, submit a revision.
+2. When feedback is released, peerview.it emails you. Open **Feedback received** on the space page (or **Reviews received** on your work) to read each review: the answers per criterion and the comments with the passage they are about. Reviewers appear as "Reviewer A", "Reviewer B" unless the round shows their names. Drafts never reach you. (ADR 0028)
+3. Write a response to each review. If there is another round, submit a revision. (M6 step 2)
 
 ## 7. Reviewer (M5)
 
@@ -105,9 +105,9 @@ In Moodle, paste the space or call link into the course. Launch from Moodle with
 5. Everything saves automatically. Submit when done. If you reviewed without an account, peerview.it then offers **Join peerview.it**: choose a password to keep your reviews and to ask for reviews of your own work. It is free for reviewers.
 6. In a reviewing group, all members edit one shared review; each edit is recorded.
 
-An anonymity badge always shows what the other side can see, for example "Your name is hidden".
+The review page says who wrote the work, or "By Anonymous author" when the round hides authors. If the work is a PDF, peerview.it gives you a copy without the names in its properties and comments. (ADR 0028)
 
-## 8. Anonymity (rules built, screens M6)
+## 8. Anonymity (ADR 0028)
 
 Each round has a policy with independent directions.
 
@@ -120,8 +120,9 @@ Each round has a policy with independent directions.
 
 - The organizer always sees everyone.
 - Names can be revealed never, when the round closes, or at a decision.
-- Hidden parties appear under stable pseudonyms within a round, such as "Reviewer B".
-- In anonymous rounds peerview.it removes names from file names and document metadata. Authors must still keep names out of the content itself.
+- Hidden parties appear under pseudonyms that stay the same within a round: "Anonymous author", "Reviewer A", "Reviewer B". A reviewing group is one reviewer.
+- Reviewers never get the uploaded file name. When authors are hidden, a PDF reaches reviewers without the names in its document properties and comments. Authors must still keep names out of the content itself.
+- Names show only on pages that the policy allows: the review page, the Reviews received page and the round page (organizers only). The email that feedback is ready never names reviewers.
 
 ## 9. Free use and limits (M8)
 

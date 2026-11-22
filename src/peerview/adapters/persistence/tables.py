@@ -310,10 +310,28 @@ review_rounds = Table(
     Column("anonymity_key", String(64), nullable=False),
     Column("opens_at", DateTime(timezone=True), nullable=True),
     Column("closes_at", DateTime(timezone=True), nullable=True),
+    Column("release_key", String(32), nullable=False, server_default="complete_or_due"),
+    Column("released_at", DateTime(timezone=True), nullable=True),
     ForeignKeyConstraint(["call_id", "org_id"], ["calls.id", "calls.org_id"], ondelete="CASCADE"),
     UniqueConstraint("id", "org_id", name="uq_review_rounds_id_org"),
     UniqueConstraint("call_id", "number", name="uq_review_rounds_number"),
     Index("ix_review_rounds_call_id", "call_id"),
+)
+
+# When each Submission's feedback reached its authors in a round (ADR 0028).
+feedback_releases = Table(
+    "feedback_releases",
+    metadata,
+    Column("round_id", String(64), primary_key=True),
+    Column("submission_id", String(64), primary_key=True),
+    Column("org_id", String(64), nullable=False),
+    Column("released_at", DateTime(timezone=True), nullable=False),
+    ForeignKeyConstraint(
+        ["round_id", "org_id"], ["review_rounds.id", "review_rounds.org_id"], ondelete="CASCADE"
+    ),
+    ForeignKeyConstraint(
+        ["submission_id", "org_id"], ["submissions.id", "submissions.org_id"], ondelete="CASCADE"
+    ),
 )
 
 review_tasks = Table(

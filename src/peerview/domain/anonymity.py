@@ -63,6 +63,19 @@ class AnonymityPolicy:
         return self.reviewer_visible_to_other_reviewers
 
 
+ANONYMOUS_AUTHOR = "Anonymous author"
+
+
+def reviewer_pseudonym(index: int) -> str:
+    """The name a hidden reviewer goes by: Reviewer A, B, ... Z, AA, AB, ... (0-based)."""
+    letters = ""
+    n = index + 1
+    while n:
+        n, rest = divmod(n - 1, 26)
+        letters = chr(ord("A") + rest) + letters
+    return f"Reviewer {letters}"
+
+
 def is_revealed(reveal_at: RevealAt, *, round_closed: bool, decided: bool) -> bool:
     """Whether identities are lifted, given where the round/decision currently stands."""
     if reveal_at is RevealAt.ROUND_CLOSE:

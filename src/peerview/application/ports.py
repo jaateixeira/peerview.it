@@ -327,7 +327,9 @@ class RoundRepository(Protocol):
 
     def get_round(self, round_id: RoundId) -> ReviewRound | None: ...
 
-    def update_round(self, round_: ReviewRound) -> None: ...
+    def update_round(self, round_: ReviewRound) -> None:
+        """Changes the settings; `released_at` changes only through `mark_released`."""
+        ...
 
     def delete_round(self, round_id: RoundId) -> None: ...
 
@@ -349,6 +351,25 @@ class RoundRepository(Protocol):
 
     def tasks_for_parties(self, space_id: SpaceId, parties: Sequence[Party]) -> list[ReviewTask]:
         """Tasks in the space whose reviewer is one of these parties."""
+        ...
+
+    # When each Submission's feedback reached its authors (ADR 0028). Recording it keeps
+    # feedback released even if a reviewer is added later, and sends one notice only.
+    def record_release(
+        self, round_: ReviewRound, submission_id: SubmissionId, at: datetime
+    ) -> bool:
+        """False if this Submission's release in this round was already recorded."""
+        ...
+
+    def releases_of_round(self, round_id: RoundId) -> dict[SubmissionId, datetime]: ...
+
+    def mark_released(self, round_id: RoundId, at: datetime) -> None:
+        """Set the round's `released_at` unless it is set already; nothing else changes."""
+        ...
+
+    def rounds_due_unreleased(self, now: datetime) -> list[ReviewRound]:
+        """Rounds of every organization released by their due time (the default rule) whose
+        due time has passed and that are not marked released yet: for the notice sweep."""
         ...
 
     # Reviewer invitations (ADR 0017). `Invitation.id` is the hash of the secret.

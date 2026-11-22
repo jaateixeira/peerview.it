@@ -7,7 +7,7 @@ branches on a type key; it asks the registry for the plugin and calls it.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal, Protocol, runtime_checkable
 
 from peerview.application.web_pages import PageChecker, PageReader
@@ -64,6 +64,25 @@ class ReadsText(Protocol):
         """The words of the work. Raise ArtifactError, in words for the person, if they cannot
         be read (a scanned PDF, a page that is gone)."""
         ...
+
+
+@runtime_checkable
+class HidesAuthors(Protocol):
+    """An artifact type whose files can carry their authors' names outside the work itself
+    (a PDF's document properties and comment authors), for anonymous review (ADR 0028)."""
+
+    def without_names(self, artifact: Artifact) -> Artifact:
+        """The same work without those names. Raise ArtifactError if that cannot be done:
+        the file is then not shown, rather than shown with the names."""
+        ...
+
+
+def anonymous_copy(artifact_type: ArtifactType, artifact: Artifact) -> Artifact:
+    """What a reviewer gets when the author is hidden: no file name, no names in metadata."""
+    copy = replace(artifact, filename=None)
+    if isinstance(artifact_type, HidesAuthors):
+        copy = replace(artifact_type.without_names(copy), filename=None)
+    return copy
 
 
 @dataclass(frozen=True)
