@@ -9,7 +9,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from previewit.domain.ai_models import (
+from peerview.domain.ai_models import (
     MAX_LISTED,
     MAX_SUGGESTED,
     InvalidModelCard,
@@ -20,7 +20,7 @@ from previewit.domain.ai_models import (
     suggest,
     tokens_for,
 )
-from previewit.domain.credits import CreditPricing
+from peerview.domain.credits import CreditPricing
 
 MARGIN = CreditPricing(usd_to_eur=Decimal(1), margin=Decimal("0.30"), fees_and_tax=Decimal(0))
 
@@ -48,7 +48,7 @@ def card(key: str, **changes: object) -> ModelCard:
 LOCAL = card(
     "local/qwen3:8b", service="local", free=True, input_usd=Decimal(0), output_usd=Decimal(0),
     context_tokens=8_192, max_output_tokens=2_000, typical_output_tokens=1_500, tier=1,
-    hosted_in="FI", hosting="Previewit's own server, Finland",
+    hosted_in="FI", hosting="peerview.it's own server, Finland",
 )  # fmt: skip
 STRONG = card("anthropic/sonnet", tier=3, input_usd=Decimal(2), output_usd=Decimal(10))
 STRONG_2 = card("openai/sol", tier=3, input_usd=Decimal(2), output_usd=Decimal(10))

@@ -1,0 +1,12 @@
+{# What the live check of a web page found. Needs `page` (a PageCheck or None) and `problem`. #}
+{% if problem %}
+<p class="error" role="alert">{{ problem }}</p>
+{% elif page %}
+<div class="page-preview" role="status">
+  <p class="ok"><strong>peerview.it can reach this page.</strong></p>
+  <p class="site"><small>{{ page.site_name }}</small></p>
+  <p class="page-title"><strong>{{ page.title or page.address }}</strong></p>
+  {% if page.description %}<p><small>{{ page.description }}</small></p>{% endif %}
+  {% if page.note %}<p class="hint">{{ page.note }}</p>{% endif %}
+</div>
+{% endif %}

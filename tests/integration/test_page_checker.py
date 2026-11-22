@@ -15,8 +15,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from previewit.adapters.web_pages import HttpPageChecker, RecentChecks, page_text, read_preview
-from previewit.application.web_pages import PageCheck, PageUnreachable
+from peerview.adapters.web_pages import HttpPageChecker, RecentChecks, page_text, read_preview
+from peerview.application.web_pages import PageCheck, PageUnreachable
 
 PAGES: dict[str, tuple[int, dict[str, str], bytes]] = {
     "/essay": (
@@ -92,7 +92,7 @@ def checker(port: int, *, allow_loopback: bool = True, timeout: float = 3.0) -> 
 
     def resolve(host: str, _port: int) -> list[tuple[str, int]]:
         if host not in names:
-            from previewit.adapters.web_pages import _HostNotFound
+            from peerview.adapters.web_pages import _HostNotFound
 
             raise _HostNotFound(host)
         return [(names[host], port)]
@@ -102,9 +102,9 @@ def checker(port: int, *, allow_loopback: bool = True, timeout: float = 3.0) -> 
 
     if allow_loopback:
         return HttpPageChecker(
-            user_agent="PreviewitTest/1", resolve=resolve, allowed=allowed, timeout=timeout
+            user_agent="peerview.it-test/1", resolve=resolve, allowed=allowed, timeout=timeout
         )
-    return HttpPageChecker(user_agent="PreviewitTest/1", resolve=resolve, timeout=timeout)
+    return HttpPageChecker(user_agent="peerview.it-test/1", resolve=resolve, timeout=timeout)
 
 
 def test_the_preview_reads_title_description_and_site(port):
@@ -114,7 +114,7 @@ def test_the_preview_reads_title_description_and_site(port):
     assert found.description == "A short essay about tests."
     assert found.site_name == "Sam's notes"
     assert found.media_type == "text/html" and found.note == ""
-    assert SEEN_AGENTS[-1] == "PreviewitTest/1"
+    assert SEEN_AGENTS[-1] == "peerview.it-test/1"
 
 
 def test_without_a_site_name_the_host_is_shown(port):
@@ -153,7 +153,7 @@ def test_pages_reviewers_could_not_open_are_refused(port, path, reason):
 
 def test_a_site_that_turns_robots_away_passes_with_a_note(port):
     found = checker(port).check("http://pages.test/robots-not-welcome")
-    assert "did not let Previewit look" in found.note and found.title == ""
+    assert "did not let peerview.it look" in found.note and found.title == ""
 
 
 def test_a_public_looking_name_that_points_inside_is_refused(port):

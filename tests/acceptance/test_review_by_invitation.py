@@ -52,13 +52,13 @@ def test_organizer_invites_a_reviewer_who_opens_the_link_and_finds_the_work(
         expect(reviewer.get_by_text("Thank you for reviewing")).to_have_count(0)
         ReviewPage(reviewer).add_comment("testing", "A clear title.")
 
-        # once the review is done, Previewit invites the reviewer to join
+        # once the review is done, peerview.it invites the reviewer to join
         card = reviewer.locator(".join-card")
         expect(card).to_contain_text("Thank you for reviewing")
-        card.get_by_role("link", name="Join Previewit").click()
+        card.get_by_role("link", name="Join peerview.it").click()
         expect(reviewer.get_by_label("Email")).to_have_value(email)
         reviewer.get_by_label("Password").fill(PASSWORD)
-        reviewer.get_by_role("button", name="Join Previewit").click()
+        reviewer.get_by_role("button", name="Join peerview.it").click()
         expect(reviewer.get_by_role("heading", name="Your account")).to_be_visible()
         reviewer.goto(outbox.link_for(email))
         reviewer.get_by_role("button", name="Confirm email").click()
@@ -100,14 +100,14 @@ def _invitation_mail(outbox, email: str) -> tuple[str, str]:
     return subject, body
 
 
-def test_previewit_emails_the_invitation_with_a_cover_letter(
+def test_peerview_emails_the_invitation_with_a_cover_letter(
     page: Page, browser: Browser, base_url: str, outbox
 ):
     teacher = TeacherPage(page, base_url)
     organizer_email = outbox.sent[-1][0]  # the sign-up mail went to the organizer
     confirm = (
         page.context.new_page()
-    )  # Previewit sends mail in the organizer's name only if verified
+    )  # peerview.it sends mail in the organizer's name only if verified
     confirm.goto(outbox.link_for(organizer_email))
     confirm.get_by_role("button", name="Confirm email").click()
     expect(confirm.get_by_role("heading", name="Email confirmed")).to_be_visible()
@@ -122,9 +122,9 @@ def test_previewit_emails_the_invitation_with_a_cover_letter(
     page.get_by_label("Email address").fill(email)
     page.get_by_role("button", name="Create invitation for round 1").click()
 
-    # Previewit made the link, then asks whether it should send it, and for a cover letter
+    # peerview.it made the link, then asks whether it should send it, and for a cover letter
     expect(page.locator("code.link")).to_contain_text("/i/")
-    page.get_by_text(f"Have Previewit email it to {email}").click()
+    page.get_by_text(f"Have peerview.it email it to {email}").click()
     page.get_by_label("Cover letter").fill("Dear Rita, your fresh eyes would help us.")
     page.get_by_role("button", name="Send email").click()
     expect(page.get_by_text(f"Invitation sent to {email}.")).to_be_visible()

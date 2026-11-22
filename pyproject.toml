@@ -1,11 +1,11 @@
 [project]
-name = "previewit"
+name = "peerview"
 version = "0.0.1"
 description = "Fast, friendly, open-source peer review for any organization."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENSE"]
-authors = [{ name = "Previewit contributors" }]
+authors = [{ name = "peerview.it contributors" }]
 keywords = ["peer review", "education", "htmx", "fastapi"]
 requires-python = ">=3.12"
 dependencies = [
@@ -36,17 +36,17 @@ valkey = [
     "valkey>=6.0",
 ]
 
-[project.entry-points."previewit.plugins"]
-text = "previewit.plugins.text:TextArtifact"
-pdf = "previewit.plugins.pdf:PdfArtifact"
-webpage = "previewit.plugins.webpage:WebPageArtifact"
-numeric = "previewit.plugins.criteria:NumericCriterion"
-levels = "previewit.plugins.criteria:LevelsCriterion"
-yes_no = "previewit.plugins.criteria:YesNoCriterion"
-criterion_text = "previewit.plugins.criteria:TextCriterion"
-random = "previewit.plugins.allocation:RandomStrategy"
-round_robin = "previewit.plugins.allocation:RoundRobinStrategy"
-manual = "previewit.plugins.allocation:ManualStrategy"
+[project.entry-points."peerview.plugins"]
+text = "peerview.plugins.text:TextArtifact"
+pdf = "peerview.plugins.pdf:PdfArtifact"
+webpage = "peerview.plugins.webpage:WebPageArtifact"
+numeric = "peerview.plugins.criteria:NumericCriterion"
+levels = "peerview.plugins.criteria:LevelsCriterion"
+yes_no = "peerview.plugins.criteria:YesNoCriterion"
+criterion_text = "peerview.plugins.criteria:TextCriterion"
+random = "peerview.plugins.allocation:RandomStrategy"
+round_robin = "peerview.plugins.allocation:RoundRobinStrategy"
+manual = "peerview.plugins.allocation:ManualStrategy"
 
 [dependency-groups]
 dev = [
@@ -66,10 +66,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/previewit"]
+packages = ["src/peerview"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"docs/glossary.md" = "previewit/internal_docs/glossary.md"
+"docs/glossary.md" = "peerview/internal_docs/glossary.md"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -85,25 +85,25 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.pyright]
 include = ["src", "tests"]
 typeCheckingMode = "standard"
-strict = ["src/previewit/domain"]
+strict = ["src/peerview/domain"]
 
 [tool.importlinter]
-root_package = "previewit"
+root_package = "peerview"
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Hexagonal layering: adapters -> application -> domain"
 type = "layers"
-layers = ["previewit.bootstrap", "previewit.adapters", "previewit.application", "previewit.domain"]
+layers = ["peerview.bootstrap", "peerview.adapters", "peerview.application", "peerview.domain"]
 
 [[tool.importlinter.contracts]]
 name = "Domain is pure (no framework imports)"
 type = "forbidden"
-source_modules = ["previewit.domain", "previewit.application"]
+source_modules = ["peerview.domain", "peerview.application"]
 forbidden_modules = ["fastapi", "starlette", "jinja2", "sqlalchemy", "uvicorn"]
 
 [[tool.importlinter.contracts]]
 name = "Plugins use the application and domain only"
 type = "forbidden"
-source_modules = ["previewit.plugins"]
-forbidden_modules = ["previewit.adapters", "previewit.bootstrap"]
+source_modules = ["peerview.plugins"]
+forbidden_modules = ["peerview.adapters", "peerview.bootstrap"]

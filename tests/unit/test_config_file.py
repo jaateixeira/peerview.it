@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from previewit.adapters.settings import ConfigError, load_settings
-from previewit.domain.policy import DEFAULT_POLICY, Action
+from peerview.adapters.settings import ConfigError, load_settings
+from peerview.domain.policy import DEFAULT_POLICY, Action
 
 
-def write(tmp_path: Path, text: str, name: str = "previewit.toml", mode: int = 0o600) -> Path:
+def write(tmp_path: Path, text: str, name: str = "peerview.toml", mode: int = 0o600) -> Path:
     path = tmp_path / name
     path.write_text(textwrap.dedent(text))
     path.chmod(mode)
@@ -30,13 +30,13 @@ def test_the_file_sets_everything(tmp_path: Path):
         secret_key = "s3cret"
 
         [database]
-        url = "postgresql+psycopg://u:p@db/previewit"
+        url = "postgresql+psycopg://u:p@db/peerview"
 
         [mail]
         smtp_host = "smtp.example"
         smtp_port = 465
         smtp_security = "ssl"
-        from = "Previewit <no-reply@peereview.example>"
+        from = "peerview.it <no-reply@peereview.example>"
 
         [login.google]
         client_id = "gid"
@@ -50,11 +50,11 @@ def test_the_file_sets_everything(tmp_path: Path):
         require_verified_email_for = ["review", "submit"]
         """,
     )
-    s = load_settings({"PREVIEWIT_CONFIG": str(path)})
+    s = load_settings({"PEERVIEW_CONFIG": str(path)})
     assert s.base_url == "https://peereview.example" and s.secret_key == "s3cret"
     assert s.database_url.startswith("postgresql+psycopg://")
     assert (s.smtp_host, s.smtp_port, s.smtp_security) == ("smtp.example", 465, "ssl")
-    assert s.mail_from == "Previewit <no-reply@peereview.example>"
+    assert s.mail_from == "peerview.it <no-reply@peereview.example>"
     assert (s.google_client_id, s.google_client_secret) == ("gid", "gsecret")
     assert s.haka_entity_id == "https://peereview.example/saml/sp"
     assert s.haka_discovery_url == "https://haka.example/ds"
@@ -63,30 +63,30 @@ def test_the_file_sets_everything(tmp_path: Path):
 
 def test_environment_overrides_the_file(tmp_path: Path):
     path = write(tmp_path, '[server]\nbase_url = "http://from-file"\n')
-    env = {"PREVIEWIT_CONFIG": str(path), "PREVIEWIT_BASE_URL": "http://from-env"}
+    env = {"PEERVIEW_CONFIG": str(path), "PEERVIEW_BASE_URL": "http://from-env"}
     assert load_settings(env).base_url == "http://from-env"
 
 
 def test_the_policy_can_be_set_to_nothing_or_everything(tmp_path: Path):
     none = write(tmp_path, "[policy]\nrequire_verified_email_for = []\n", "a.toml")
-    assert load_settings({"PREVIEWIT_CONFIG": str(none)}).verification_policy.required_for == set()
-    env = {"PREVIEWIT_CONFIG": str(none), "PREVIEWIT_REQUIRE_VERIFIED_EMAIL_FOR": "join, invite"}
+    assert load_settings({"PEERVIEW_CONFIG": str(none)}).verification_policy.required_for == set()
+    env = {"PEERVIEW_CONFIG": str(none), "PEERVIEW_REQUIRE_VERIFIED_EMAIL_FOR": "join, invite"}
     assert load_settings(env).verification_policy.required_for == {Action.JOIN, Action.INVITE}
-    off = {"PREVIEWIT_REQUIRE_VERIFIED_EMAIL_FOR": ""}
+    off = {"PEERVIEW_REQUIRE_VERIFIED_EMAIL_FOR": ""}
     assert load_settings(off, search=[]).verification_policy.required_for == set()
 
 
 def test_unknown_keys_sections_and_actions_are_errors(tmp_path: Path):
     typo = write(tmp_path, '[server]\nbase_ulr = "x"\n', "a.toml")
     with pytest.raises(ConfigError, match=r"server\.base_ulr"):
-        load_settings({"PREVIEWIT_CONFIG": str(typo)})
+        load_settings({"PEERVIEW_CONFIG": str(typo)})
     section = write(tmp_path, '[serverr]\nbase_url = "x"\n', "b.toml")
     with pytest.raises(ConfigError, match="serverr"):
-        load_settings({"PREVIEWIT_CONFIG": str(section)})
+        load_settings({"PEERVIEW_CONFIG": str(section)})
     action = write(tmp_path, '[policy]\nrequire_verified_email_for = ["reveiw"]\n', "c.toml")
     with pytest.raises(ConfigError, match="reveiw"):
-        load_settings({"PREVIEWIT_CONFIG": str(action)})
-    env_action = {"PREVIEWIT_REQUIRE_VERIFIED_EMAIL_FOR": "reveiw"}
+        load_settings({"PEERVIEW_CONFIG": str(action)})
+    env_action = {"PEERVIEW_REQUIRE_VERIFIED_EMAIL_FOR": "reveiw"}
     with pytest.raises(ConfigError, match="reveiw"):
         load_settings(env_action, search=[])
 
@@ -94,18 +94,18 @@ def test_unknown_keys_sections_and_actions_are_errors(tmp_path: Path):
 def test_wrong_types_and_broken_toml_are_errors(tmp_path: Path):
     bad_type = write(tmp_path, '[mail]\nsmtp_port = "many"\n', "a.toml")
     with pytest.raises(ConfigError, match=r"smtp_port"):
-        load_settings({"PREVIEWIT_CONFIG": str(bad_type)})
+        load_settings({"PEERVIEW_CONFIG": str(bad_type)})
     not_list = write(tmp_path, '[policy]\nrequire_verified_email_for = "review"\n', "b.toml")
     with pytest.raises(ConfigError, match="require_verified_email_for"):
-        load_settings({"PREVIEWIT_CONFIG": str(not_list)})
+        load_settings({"PEERVIEW_CONFIG": str(not_list)})
     broken = write(tmp_path, "[server\n", "c.toml")
     with pytest.raises(ConfigError, match=r"c\.toml"):
-        load_settings({"PREVIEWIT_CONFIG": str(broken)})
+        load_settings({"PEERVIEW_CONFIG": str(broken)})
 
 
 def test_an_explicit_missing_file_is_an_error_but_a_missing_default_is_not(tmp_path: Path):
     with pytest.raises(ConfigError, match=r"nope\.toml"):
-        load_settings({"PREVIEWIT_CONFIG": str(tmp_path / "nope.toml")})
+        load_settings({"PEERVIEW_CONFIG": str(tmp_path / "nope.toml")})
     assert load_settings({}, search=[tmp_path / "absent.toml"]).secret_key
 
 
@@ -124,7 +124,7 @@ def test_relative_paths_are_relative_to_the_config_file(tmp_path: Path):
         metadata_file = "idp.xml"
         """,
     )
-    s = load_settings({"PREVIEWIT_CONFIG": str(path)})
+    s = load_settings({"PEERVIEW_CONFIG": str(path)})
     assert s.haka_cert_file == str(tmp_path / "keys/sp.crt")
     assert s.haka_key_file == "/abs/sp.key"
     assert s.haka_metadata_file == str(tmp_path / "idp.xml")
@@ -145,7 +145,7 @@ def test_secrets_can_live_in_separate_files(tmp_path: Path):
         private_key_file = "AuthKey.p8"
         """,
     )
-    s = load_settings({"PREVIEWIT_CONFIG": str(path)})
+    s = load_settings({"PEERVIEW_CONFIG": str(path)})
     assert s.secret_key == "from-a-file"
     assert s.apple_private_key is not None and "BEGIN PRIVATE KEY" in s.apple_private_key
 
@@ -153,17 +153,17 @@ def test_secrets_can_live_in_separate_files(tmp_path: Path):
 def test_both_inline_and_file_for_one_secret_is_an_error(tmp_path: Path):
     path = write(tmp_path, '[server]\nsecret_key = "a"\nsecret_key_file = "b"\n')
     with pytest.raises(ConfigError, match="secret_key"):
-        load_settings({"PREVIEWIT_CONFIG": str(path)})
+        load_settings({"PEERVIEW_CONFIG": str(path)})
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions")
 def test_a_world_readable_file_with_secrets_is_warned_about(tmp_path: Path, logged):
     path = write(tmp_path, '[server]\nsecret_key = "x"\n', mode=0o644)
-    load_settings({"PREVIEWIT_CONFIG": str(path)})
+    load_settings({"PEERVIEW_CONFIG": str(path)})
     assert "chmod 600" in logged.text
     logged.clear()
     quiet = write(tmp_path, '[server]\nbase_url = "http://x"\n', "q.toml", mode=0o644)
-    load_settings({"PREVIEWIT_CONFIG": str(quiet)})
+    load_settings({"PEERVIEW_CONFIG": str(quiet)})
     assert "chmod" not in logged.text  # nothing secret inside, nothing to warn about
 
 
@@ -179,17 +179,17 @@ def test_cache_and_logging_settings(tmp_path: Path):
         level = "debug"
         """,
     )
-    s = load_settings({"PREVIEWIT_CONFIG": str(path)})
+    s = load_settings({"PEERVIEW_CONFIG": str(path)})
     assert (s.cache_url, s.log_level) == ("valkey://localhost:6379/0", "DEBUG")
-    assert load_settings({"PREVIEWIT_LOG_LEVEL": "trace"}, search=[]).log_level == "TRACE"
+    assert load_settings({"PEERVIEW_LOG_LEVEL": "trace"}, search=[]).log_level == "TRACE"
     with pytest.raises(ConfigError, match="LOG_LEVEL"):
-        load_settings({"PREVIEWIT_LOG_LEVEL": "loud"}, search=[])
+        load_settings({"PEERVIEW_LOG_LEVEL": "loud"}, search=[])
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX permissions")
 def test_a_cache_url_may_hold_a_password_so_an_open_file_is_warned_about(tmp_path: Path, logged):
     path = write(tmp_path, '[cache]\nurl = "valkey://:pw@localhost/0"\n', mode=0o644)
-    load_settings({"PREVIEWIT_CONFIG": str(path)})
+    load_settings({"PEERVIEW_CONFIG": str(path)})
     assert "chmod 600" in logged.text
 
 
@@ -206,14 +206,14 @@ def test_other_addresses_of_the_site_can_be_listed(tmp_path: Path):
         aliases = ["https://Peereview.example/", "https://www.peerview.example"]
         """,
     )
-    s = load_settings({"PREVIEWIT_CONFIG": str(path), "PREVIEWIT_SMTP_HOST": "m"}, search=[])
+    s = load_settings({"PEERVIEW_CONFIG": str(path), "PEERVIEW_SMTP_HOST": "m"}, search=[])
     assert s.aliases == ("https://peereview.example", "https://www.peerview.example")
     assert s.alias_hosts == frozenset({"peereview.example", "www.peerview.example"})
     assert load_settings({}, search=[]).aliases == ()
 
 
 def test_the_environment_lists_aliases_with_commas():
-    s = load_settings({"PREVIEWIT_ALIASES": "http://a.example:8000, http://b.example"}, search=[])
+    s = load_settings({"PEERVIEW_ALIASES": "http://a.example:8000, http://b.example"}, search=[])
     assert s.aliases == ("http://a.example:8000", "http://b.example")
     assert s.alias_hosts == frozenset({"a.example:8000", "b.example"})
 
@@ -242,7 +242,7 @@ def test_a_wrong_alias_stops_the_start_and_says_why(tmp_path: Path, aliases: str
         """,
     )
     with pytest.raises(ConfigError, match=problem):
-        load_settings({"PREVIEWIT_CONFIG": str(path)}, search=[])
+        load_settings({"PEERVIEW_CONFIG": str(path)}, search=[])
 
 
 def test_the_ai_section_sets_the_free_model_server(tmp_path: Path):  # ADR 0025
@@ -258,14 +258,14 @@ def test_the_ai_section_sets_the_free_model_server(tmp_path: Path):  # ADR 0025
         margin_percent = 25
         """,
     )
-    s = load_settings({"PREVIEWIT_CONFIG": str(path)})
+    s = load_settings({"PEERVIEW_CONFIG": str(path)})
     assert s.ai_enabled and s.ai_ollama_url == "http://10.0.0.7:11434"
     assert (s.ai_local_place, s.ai_local_country) == ("Jyväskylä, Finland", "FI")
     assert s.ai_local_context == 16384 and s.ai_local_models == ("qwen3:8b", "gemma3:12b")
     assert s.ai_margin_percent == 25
     off = write(tmp_path, "[ai]\nenabled = false\n", name="off.toml")
-    assert not load_settings({"PREVIEWIT_CONFIG": str(off)}).ai_enabled
-    assert not load_settings({"PREVIEWIT_AI_ENABLED": "false"}, search=[]).ai_enabled
+    assert not load_settings({"PEERVIEW_CONFIG": str(off)}).ai_enabled
+    assert not load_settings({"PEERVIEW_AI_ENABLED": "false"}, search=[]).ai_enabled
 
 
 def test_ai_settings_of_the_wrong_kind_are_errors(tmp_path: Path):
@@ -275,9 +275,9 @@ def test_ai_settings_of_the_wrong_kind_are_errors(tmp_path: Path):
         "[ai]\nlocal_models = 3\n",
     ):
         with pytest.raises(ConfigError, match="ai"):
-            load_settings({"PREVIEWIT_CONFIG": str(write(tmp_path, text))})
+            load_settings({"PEERVIEW_CONFIG": str(write(tmp_path, text))})
     with pytest.raises(ConfigError, match="AI_MARGIN_PERCENT"):
-        load_settings({"PREVIEWIT_AI_MARGIN_PERCENT": "-5"}, search=[])
+        load_settings({"PEERVIEW_AI_MARGIN_PERCENT": "-5"}, search=[])
 
 
 def test_the_seller_and_paddle_sections(tmp_path: Path):  # ADR 0026
@@ -305,8 +305,8 @@ def test_the_seller_and_paddle_sections(tmp_path: Path):  # ADR 0026
         keys_file = "ai-keys.toml"
         """,
     )
-    s = load_settings({"PREVIEWIT_CONFIG": str(path)})
-    assert (s.seller_legal_name, s.seller_trading_name) == ("José Teixeira", "Previewit")
+    s = load_settings({"PEERVIEW_CONFIG": str(path)})
+    assert (s.seller_legal_name, s.seller_trading_name) == ("José Teixeira", "peerview.it")
     assert s.seller_phone == "+358 40 000 0000" and s.seller_business_id is None
     assert s.seller_processors == ("Brevo SAS, France: sends emails", "a / b")
     assert (s.paddle_environment, s.paddle_client_token) == ("sandbox", "test_abc123")
@@ -318,20 +318,32 @@ def test_the_seller_and_paddle_sections(tmp_path: Path):  # ADR 0026
 
 def test_paddle_settings_that_cannot_work_are_errors(tmp_path: Path):
     for env, reason in [
-        ({"PREVIEWIT_PADDLE_ENVIRONMENT": "live"}, "sandbox or production"),
-        ({"PREVIEWIT_PADDLE_CLIENT_TOKEN": "live_x"}, "starts with test_"),
+        ({"PEERVIEW_PADDLE_ENVIRONMENT": "live"}, "sandbox or production"),
+        ({"PEERVIEW_PADDLE_CLIENT_TOKEN": "live_x"}, "starts with test_"),
         (
             {
-                "PREVIEWIT_PADDLE_ENVIRONMENT": "production",
-                "PREVIEWIT_PADDLE_CLIENT_TOKEN": "test_x",
+                "PEERVIEW_PADDLE_ENVIRONMENT": "production",
+                "PEERVIEW_PADDLE_CLIENT_TOKEN": "test_x",
             },
             "starts with live_",
         ),
-        ({"PREVIEWIT_PADDLE_PACKS": "pri_a:five"}, "pri_...:euros"),
-        ({"PREVIEWIT_AI_USD_TO_EUR": "lots"}, "number"),
+        ({"PEERVIEW_PADDLE_PACKS": "pri_a:five"}, "pri_...:euros"),
+        ({"PEERVIEW_AI_USD_TO_EUR": "lots"}, "number"),
     ]:
         with pytest.raises(ConfigError, match=reason):
             load_settings(env, search=[])
     bad = write(tmp_path, '[paddle]\npacks = ["pri_a"]\n')
     with pytest.raises(ConfigError, match="price ids to whole euros"):
-        load_settings({"PREVIEWIT_CONFIG": str(bad)})
+        load_settings({"PEERVIEW_CONFIG": str(bad)})
+
+
+def test_the_old_names_still_work_for_now(tmp_path: Path):  # ADR 0027
+    old = load_settings(
+        {"PREVIEWIT_BASE_URL": "http://old.example", "PREVIEWIT_LOG_LEVEL": "DEBUG"}, search=[]
+    )
+    assert (old.base_url, old.log_level) == ("http://old.example", "DEBUG")
+    both = load_settings({"PREVIEWIT_LOG_LEVEL": "DEBUG", "PEERVIEW_LOG_LEVEL": "ERROR"}, search=[])
+    assert both.log_level == "ERROR"  # the new name wins
+    file = tmp_path / "previewit.toml"
+    file.write_text('[logging]\nlevel = "WARNING"\n')
+    assert load_settings({}, search=[tmp_path / "peerview.toml", file]).log_level == "WARNING"

@@ -1,6 +1,6 @@
 import pytest
 
-from previewit.adapters.cache import MemoryCache, ValkeyCache, make_cache
+from peerview.adapters.cache import MemoryCache, ValkeyCache, make_cache
 
 
 class Clock:
@@ -73,7 +73,7 @@ def test_valkey_keys_are_namespaced_and_carry_a_ttl():
     client = FakeClient()
     cache = ValkeyCache(client)
     cache.set("user:1", "x", 60)
-    assert client.data == {"previewit:user:1": ("x", 60)}
+    assert client.data == {"peerview:user:1": ("x", 60)}
     assert cache.get("user:1") == "x"
     cache.delete("user:1")
     assert cache.get("user:1") is None

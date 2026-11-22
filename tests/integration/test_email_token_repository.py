@@ -6,16 +6,16 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy import create_engine
 
-from previewit.adapters.persistence.memory import (
+from peerview.adapters.persistence.memory import (
     InMemoryEmailTokenRepository,
 )
-from previewit.adapters.persistence.migrate import upgrade
-from previewit.adapters.persistence.sql import SqlEmailTokenRepository, SqlUserRepository
-from previewit.application.ports import EmailToken, EmailTokenRepository
-from previewit.domain.identity import Email, User, UserId
+from peerview.adapters.persistence.migrate import upgrade
+from peerview.adapters.persistence.sql import SqlEmailTokenRepository, SqlUserRepository
+from peerview.application.ports import EmailToken, EmailTokenRepository
+from peerview.domain.identity import Email, User, UserId
 from tests.integration.test_user_repository import _clean_postgres
 
-POSTGRES_URL = os.environ.get("PREVIEWIT_TEST_POSTGRES_URL")
+POSTGRES_URL = os.environ.get("PEERVIEW_TEST_POSTGRES_URL")
 T0 = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
 U1, U2 = UserId("u1"), UserId("u2")
 
@@ -28,7 +28,7 @@ def tokens(request: pytest.FixtureRequest, tmp_path) -> EmailTokenRepository:
         url = f"sqlite:///{tmp_path / 't.db'}"
     else:
         if not POSTGRES_URL:
-            pytest.skip("set PREVIEWIT_TEST_POSTGRES_URL to run against PostgreSQL")
+            pytest.skip("set PEERVIEW_TEST_POSTGRES_URL to run against PostgreSQL")
         _clean_postgres(POSTGRES_URL)
         url = POSTGRES_URL
     upgrade(url)

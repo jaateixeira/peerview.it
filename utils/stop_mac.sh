@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop the local Previewit server on macOS. Does not start, pull or change anything.
+# Stop the local peerview.it server on macOS. Does not start, pull or change anything.
 #
 # Usage:  utils/stop_mac.sh              # stop whatever listens on port 8000
 #         PORT=8010 utils/stop_mac.sh    # another port

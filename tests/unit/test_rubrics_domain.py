@@ -1,7 +1,7 @@
 import pytest
 
-from previewit.application.criteria import CriterionRegistry
-from previewit.domain.rubrics import (
+from peerview.application.criteria import CriterionRegistry
+from peerview.domain.rubrics import (
     EDUCATION_TEMPLATES,
     InvalidRubric,
     clean_criterion_title,
@@ -10,7 +10,7 @@ from previewit.domain.rubrics import (
     clean_weight,
     templates_for,
 )
-from previewit.plugins.criteria import (
+from peerview.plugins.criteria import (
     LevelsCriterion,
     NumericCriterion,
     TextCriterion,

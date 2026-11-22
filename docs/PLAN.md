@@ -1,4 +1,4 @@
-# Previewit — Project Plan
+# peerview.it — Project Plan
 
 A fast, friendly, open-source peer-review system for **any organization** that wants work reviewed by peers: universities, journals and conferences, engineering teams, companies, NGOs, communities. Individuals review individuals, groups review individuals, individuals review groups, groups review groups. Reviewers comment directly on free text or PDFs and score against criteria. Other artifact types (code, Jira documentation, 3D models, video, …) arrive as plugins.
 
@@ -7,6 +7,8 @@ Education (students reviewing students) is the first *preset*, not a baked-in as
 Stack: Python · FastAPI · Jinja2 · HTMX · server-rendered, no SPA.
 
 Business context and founder decisions: [`docs/business/`](business/README.md). Hosted-first and Debian-only: [ADR 0005](adr/0005-hosted-first-debian-only.md).
+
+**ASAP:** the ordered actions to go live with credit through Paddle are in [`docs/business/actions-now.md`](business/actions-now.md), each a GitHub issue in the *Go live* milestone. The brand is peerview.it everywhere ([ADR 0027](adr/0027-brand-peerview-it.md)).
 
 ---
 
@@ -127,7 +129,7 @@ The three key processes:
 
 1. **Organizing a call for authors.** Create a space, create the call (instructions, artifact type, deadline, access mode), publish, send the link, follow who has submitted.
 2. **Organizing peer review of the items.** Build a rubric, configure a round (reviews per submission, anonymity, allocation, window), pick the reviewers, allocate, send the call for reviewers, follow progress, release feedback, run further rounds.
-3. **Reviewing work by invitation.** Open the invitation (no account needed), see the allocated work, review it (comments and scores), submit, and join Previewit afterwards if you like (ADR 0020).
+3. **Reviewing work by invitation.** Open the invitation (no account needed), see the allocated work, review it (comments and scores), submit, and join peerview.it afterwards if you like (ADR 0020).
 
 ### 2.7 Multi-tenancy and hosting
 
@@ -141,8 +143,8 @@ The three key processes:
 ## 3. Architecture
 
 ```
-previewit/
-├─ src/previewit/
+peerview/
+├─ src/peerview/
 │  ├─ domain/          # entities, value objects, domain services. PURE PYTHON
 │  ├─ application/     # use cases (commands/queries), ports (Protocols)
 │  ├─ adapters/
@@ -175,7 +177,7 @@ Dependency rule: `adapters → application → domain`. Never the reverse.
 | Frontend | Jinja2 + HTMX + a little Alpine.js; hand-written CSS with design tokens (no Node build) | Lightning fast, zero JS toolchain for contributors |
 | PDF | PDF.js for rendering; annotation layer in our own small JS module | Mature, open source |
 | Text annotation | Server stores selectors; small JS captures the selection | Keeps JS minimal |
-| Plugins | `pluggy` + Python entry points (`previewit.plugins`) | Standard, proven (pytest uses it) |
+| Plugins | `pluggy` + Python entry points (`peerview.plugins`) | Standard, proven (pytest uses it) |
 | Auth | Session cookie, argon2, CSRF tokens; `AuthProvider` port | OIDC/Shibboleth/Google later with no domain change |
 | i18n | gettext/Babel from the start (EN + FI) | Cheap now, painful to retrofit |
 | Quality | ruff, pyright (strict on `domain`), pre-commit, import-linter | |
@@ -223,7 +225,7 @@ The core never imports a plugin; it asks the registry. Plugin API is marked *uns
 
 ## 6. Roadmap
 
-**Status:** M0 done (licence: AGPL-3.0-or-later) (walking skeleton, tooling, CI, ADRs, `Party` and `AnonymityPolicy` domain with unit tests, Playwright test). Login (Google, Apple, HAKA, email + password) is implemented ahead of M1 (see ADR 0007). Organizations, spaces, roles (preset-defined), invite links and groups are implemented (ADR 0009); M1 is done (authorisation matrix and cross-tenant tests pass). M2 is done (calls, submissions, revisions, text and PDF plugins, review by link; ADR 0011). M3 is done (rubrics, criterion-type plugins, templates, attach to a call, preview; ADR 0013). M4 is done (review rounds, random, round-robin and manual allocation with property tests, "my reviews"; ADR 0014). M5 is done for text work (review form with autosave, group-shared editing with version check and edit trail, text comments, review state on the round page; ADR 0015); PDF page annotations are the one open M5 item. ADR 0017 (three actors, public or protected calls for authors, reviewer invitations) is being delivered in four steps before M6: A documentation, B fixed roles (done), C call access (done), D reviewer invitations (done). ADR 0018 adds the quick way in (*Request a review*, one page from file and reviewers to invitations sent). ADR 0019 shows times in each viewer's zone, with reviews due at 16:00 by default. ADR 0020 lets reviewers review without an account and join afterwards. ADR 0022 adds web pages as a third artifact type (checked for reach, never copied) and comments on the whole work. ADR 0023 adds an MCP service: AI assistants prepare review requests that the person checks and sends. ADR 0024 lets visitors fill in Request a review before signing in; the form and its file wait an hour. Then M5b (PDF annotations) and M6.
+**Status:** M0 done (licence: AGPL-3.0-or-later) (walking skeleton, tooling, CI, ADRs, `Party` and `AnonymityPolicy` domain with unit tests, Playwright test). Login (Google, Apple, HAKA, email + password) is implemented ahead of M1 (see ADR 0007). Organizations, spaces, roles (preset-defined), invite links and groups are implemented (ADR 0009); M1 is done (authorisation matrix and cross-tenant tests pass). M2 is done (calls, submissions, revisions, text and PDF plugins, review by link; ADR 0011). M3 is done (rubrics, criterion-type plugins, templates, attach to a call, preview; ADR 0013). M4 is done (review rounds, random, round-robin and manual allocation with property tests, "my reviews"; ADR 0014). M5 is done for text work (review form with autosave, group-shared editing with version check and edit trail, text comments, review state on the round page; ADR 0015); PDF page annotations are the one open M5 item. ADR 0017 (three actors, public or protected calls for authors, reviewer invitations) is being delivered in four steps before M6: A documentation, B fixed roles (done), C call access (done), D reviewer invitations (done). ADR 0018 adds the quick way in (*Request a review*, one page from file and reviewers to invitations sent). ADR 0019 shows times in each viewer's zone, with reviews due at 16:00 by default. ADR 0020 lets reviewers review without an account and join afterwards. ADR 0022 adds web pages as a third artifact type (checked for reach, never copied) and comments on the whole work. ADR 0023 adds an MCP service: AI assistants prepare review requests that the person checks and sends. ADR 0024 lets visitors fill in Request a review before signing in; the form and its file wait an hour. ADR 0025 adds AI reviews (MI) and ADR 0026 credit sold through Paddle (MC); ADR 0027 makes peerview.it the one brand. Next: the go-live actions in `docs/business/actions-now.md`, then M5b (PDF annotations) and M6.
 
 Every milestone: small PRs, tests first, CI green, ADR for each notable decision.
 
@@ -236,9 +238,9 @@ Every milestone: small PRs, tests first, CI green, ADR for each notable decision
 | **M4** | Review rounds & allocation | Multi-round config, 1:n / n:n allocation (random, round-robin, manual), property tests | Allocation invariants hold for random inputs |
 | **M5** | Review workspace | Criteria form with autosave, text annotations, PDF annotations, group-shared review editing | Acceptance scenarios 1 and 2 pass |
 | **MA** | Actors and invitations (ADR 0017) | A: docs. B: fixed roles organizer/author/reviewer replace preset roles. C (done): call for authors public or token; opening the link makes the visitor an author member. D (done): reviewer invitations, bound to the invited email, and review by invitation; reviewers need no account (ADR 0020) | Scenarios: organize a call for authors; organize peer review; review by invitation |
-| **MC** | Credit through Paddle (ADR 0026), step 2 of MA | Credit packs in euros sold through Paddle as merchant of record (sandbox first); AI reviews paid from credit with Previewit's own keys (hold the most, give back the rest); signed notifications add and refund credit; public Pricing, Terms, Refunds (30 days, any reason), Privacy and Contact pages linked from every page, with the seller from `[seller]` | Scenarios: a visitor finds the pages Paddle reviews from the footer; an author with credit asks an AI model without a key |
-| **MQ** | Request a review (ADR 0018) | One page: sign in, add a PDF, text or a web page's address (checked for reach, ADR 0022), type or import the reviewers' emails (`.txt`, `.csv`, `.json`, `.xml`, with samples), send. Makes the space, call, round and invitations in one step; Previewit can email them. An AI assistant can prepare it through the MCP service for the person to send (ADR 0023) | Scenarios: sign up from the home page and have a reviewer find the work; review a web page; an assistant prepares, the person sends |
-| **MA** | AI reviews (ADR 0025), step 1 | After the human reviewers, the request form offers AI models: three suggested from three makers (a free one on Previewit's own Ollama server, a strong one, a good-value one), up to 20 on *See more*, with where each runs (a flag) and what a review costs with the person's own key and without one. Keys are used once and never stored. Reviews are written in the background and shown to the author and the organizers only; more can be asked from the work's page. Step 2 (with M8): credits and payments, so Previewit can pay and charge | Scenario: an author asks a free model with their request, reads its review on the work's page; the reviewer never sees it |
+| **MC** | Credit through Paddle (ADR 0026), step 2 of MI | Credit packs in euros sold through Paddle as merchant of record (sandbox first); AI reviews paid from credit with peerview.it's own keys (hold the most, give back the rest); signed notifications add and refund credit; public Pricing, Terms, Refunds (30 days, any reason), Privacy and Contact pages linked from every page, with the seller from `[seller]` | Scenarios: a visitor finds the pages Paddle reviews from the footer; an author with credit asks an AI model without a key |
+| **MQ** | Request a review (ADR 0018) | One page: sign in, add a PDF, text or a web page's address (checked for reach, ADR 0022), type or import the reviewers' emails (`.txt`, `.csv`, `.json`, `.xml`, with samples), send. Makes the space, call, round and invitations in one step; peerview.it can email them. An AI assistant can prepare it through the MCP service for the person to send (ADR 0023) | Scenarios: sign up from the home page and have a reviewer find the work; review a web page; an assistant prepares, the person sends |
+| **MI** | AI reviews (ADR 0025), step 1 | After the human reviewers, the request form offers AI models: three suggested from three makers (a free one on peerview.it's own Ollama server, a strong one, a good-value one), up to 20 on *See more*, with where each runs (a flag) and what a review costs with the person's own key and without one. Keys are used once and never stored. Reviews are written in the background and shown to the author and the organizers only; more can be asked from the work's page. Step 2 (with M8): credits and payments, so peerview.it can pay and charge | Scenario: an author asks a free model with their request, reads its review on the work's page; the reviewer never sees it |
 | **M6** | Anonymity, release & feedback | Directional `AnonymityPolicy` + `IdentityMask`, release rules, "feedback received", author responses, later-round view, notifications, leak tests | Scenario 3 passes; leak tests pass |
 | **M7** | Polish & v0.1 | Performance pass, a11y audit, EN/FI strings, docs, seed demo data, organizer export (CSV) | Budgets met; **v0.1.0 tagged** |
 | **M8** | Hosted service | Multi-tenant hosted mode, `Entitlements` port with storage and share quotas, reminders before the due time (a paid plan chooses when; ADR 0019), usage display and upgrade prompt, payment adapter, abuse controls (rate limits, upload checks, takedown), terms and privacy pages | A stranger signs up and runs a round unaided; quotas enforced and tested |
@@ -279,7 +281,7 @@ Every milestone: small PRs, tests first, CI green, ADR for each notable decision
 
 ## 10. Assumptions to confirm
 
-1. Name/package: `previewit`.
+1. Name/package: `peerview`.
 2. SQLite for local development and tests only; PostgreSQL is the only supported production database.
 3. Local accounts plus Google, Apple and HAKA login were pulled forward (ADR 0007); organizations and roles remain in M1.
 4. English + Finnish UI; vocabulary overridable per organization.

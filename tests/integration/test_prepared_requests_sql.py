@@ -2,8 +2,8 @@
 
 import pytest
 
-from previewit.adapters.persistence.sql_prepared import SqlPreparedRequestRepository
-from previewit.adapters.persistence.tables import prepared_requests
+from peerview.adapters.persistence.sql_prepared import SqlPreparedRequestRepository
+from peerview.adapters.persistence.tables import prepared_requests
 from tests.integration.test_tenancy_sql import engine as engine  # fixture
 from tests.unit import test_prepared_requests as base
 

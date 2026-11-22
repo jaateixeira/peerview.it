@@ -1,0 +1,519 @@
+"""Configuration: an optional TOML file, overridden by PEERVIEW_* environment variables.
+
+See docs/auth/login-setup.md and peerview.example.toml.
+"""
+
+from __future__ import annotations
+
+import secrets
+import tomllib
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
+
+from loguru import logger
+
+from peerview.adapters.logs import LEVELS
+from peerview.domain.policy import DEFAULT_POLICY, VerificationPolicy, parse_actions
+
+# The product's old name, Previewit, is still read until the end of 2027 (ADR 0027): settings
+# named PREVIEWIT_* and the old config file paths, each with a warning.
+OLD_PREFIX, PREFIX = "PREVIEWIT_", "PEERVIEW_"
+OLD_CONFIG_PATHS = (Path("previewit.toml"), Path("/etc/previewit/previewit.toml"))
+DEFAULT_CONFIG_PATHS = (
+    Path("peerview.toml"),
+    Path("/etc/peerview/peerview.toml"),
+    *OLD_CONFIG_PATHS,
+)
+
+
+class ConfigError(Exception):
+    """The configuration is invalid; the message says what to fix."""
+
+
+@dataclass(frozen=True)
+class Settings:
+    secret_key: str
+    base_url: str = "http://localhost:8000"
+    aliases: tuple[str, ...] = ()  # other addresses of this site; they redirect to base_url
+    database_url: str = "sqlite:///peerview.db"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_security: str = "starttls"  # starttls | ssl | none
+    mail_from: str | None = None
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    apple_client_id: str | None = None
+    apple_team_id: str | None = None
+    apple_key_id: str | None = None
+    apple_private_key: str | None = None
+    haka_entity_id: str | None = None
+    haka_cert_file: str | None = None
+    haka_key_file: str | None = None
+    haka_metadata_url: str | None = None
+    haka_metadata_cert: str | None = None
+    haka_metadata_file: str | None = None
+    haka_discovery_url: str | None = None
+    haka_idp_entity_id: str | None = None
+    verification_policy: VerificationPolicy = field(default=DEFAULT_POLICY)
+    cache_url: str | None = None  # valkey://host:6379/0; unset = in-process cache
+    log_level: str = "INFO"  # TRACE | DEBUG | INFO | WARNING | ERROR
+    # AI reviews (ADR 0025). The free models run on peerview.it's own Ollama server, if any.
+    ai_enabled: bool = True
+    ai_ollama_url: str | None = None  # e.g. http://10.0.0.7:11434
+    ai_local_place: str = "Finland"  # where that server is, in words
+    ai_local_country: str = "FI"  # and as a country code, for the flag
+    ai_local_context: int = 8192  # tokens each local model reads and writes in one go
+    ai_local_models: tuple[str, ...] = ()  # offer only these installed models; empty: all
+    ai_margin_percent: int = 30  # on top of a service's price when paid with credit
+    ai_usd_to_eur: str = "1.00"  # euros for one dollar, for prices in credit; err high
+    ai_fees_and_tax_percent: int = 40  # on top again: VAT and Paddle's fee (ADR 0026)
+    ai_keys_file: str | None = None  # peerview.it's own keys for the services, for credit
+    # Who sells (ADR 0026): shown on the terms, privacy and contact pages that Paddle reviews.
+    seller_legal_name: str | None = None  # a sole trader's own legal name
+    seller_trading_name: str = "peerview.it"
+    seller_business_id: str | None = None  # Y-tunnus, once registered
+    seller_address: str | None = None
+    seller_email: str | None = None
+    seller_phone: str | None = None
+    seller_privacy_email: str | None = None
+    seller_processors: tuple[str, ...] = ()  # who processes data for us, one line each
+    # Paddle, the merchant of record that sells credit (ADR 0026).
+    paddle_environment: str = "sandbox"  # sandbox | production
+    paddle_client_token: str | None = None  # test_... or live_...; safe to publish
+    paddle_webhook_secret: str | None = None
+    paddle_packs: tuple[tuple[str, int], ...] = ()  # (Paddle price id, whole euros)
+
+    @property
+    def https(self) -> bool:
+        return self.base_url.startswith("https://")
+
+    @property
+    def origin(self) -> str:
+        return self.base_url.rstrip("/")
+
+    @property
+    def host(self) -> str:
+        """The site address as people type it, for example ``peerview.it``."""
+        return urlsplit(self.base_url).netloc
+
+    @property
+    def alias_hosts(self) -> frozenset[str]:
+        """Host names (with a port, if any) that lead to this site but are not its address."""
+        return frozenset(urlsplit(alias).netloc for alias in self.aliases)
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str]) -> Settings:
+        base_url = env.get("PEERVIEW_BASE_URL", cls.base_url)
+        secret = env.get("PEERVIEW_SECRET_KEY")
+        if not secret:
+            if base_url.startswith("https://"):
+                raise RuntimeError("PEERVIEW_SECRET_KEY is required when the base URL is https")
+            secret = secrets.token_hex(32)  # dev: sessions end when the process restarts
+        return cls(
+            secret_key=secret,
+            base_url=base_url,
+            aliases=_aliases(env, base_url),
+            database_url=env.get("PEERVIEW_DATABASE_URL", cls.database_url),
+            smtp_host=_get(env, "SMTP_HOST"),
+            smtp_port=int(_get(env, "SMTP_PORT") or cls.smtp_port),
+            smtp_user=_get(env, "SMTP_USER"),
+            smtp_password=_get(env, "SMTP_PASSWORD"),
+            smtp_security=_get(env, "SMTP_SECURITY") or cls.smtp_security,
+            mail_from=_get(env, "MAIL_FROM"),
+            google_client_id=_get(env, "GOOGLE_CLIENT_ID"),
+            google_client_secret=_get(env, "GOOGLE_CLIENT_SECRET"),
+            apple_client_id=_get(env, "APPLE_CLIENT_ID"),
+            apple_team_id=_get(env, "APPLE_TEAM_ID"),
+            apple_key_id=_get(env, "APPLE_KEY_ID"),
+            apple_private_key=_apple_key(env),
+            haka_entity_id=_get(env, "HAKA_ENTITY_ID"),
+            haka_cert_file=_get(env, "HAKA_CERT_FILE"),
+            haka_key_file=_get(env, "HAKA_KEY_FILE"),
+            haka_metadata_url=_get(env, "HAKA_METADATA_URL"),
+            haka_metadata_cert=_get(env, "HAKA_METADATA_CERT"),
+            haka_metadata_file=_get(env, "HAKA_METADATA_FILE"),
+            haka_discovery_url=_get(env, "HAKA_DISCOVERY_URL"),
+            haka_idp_entity_id=_get(env, "HAKA_IDP_ENTITY_ID"),
+            verification_policy=_policy(env),
+            cache_url=_get(env, "CACHE_URL"),
+            log_level=_log_level(env),
+            ai_enabled=_flag(env, "AI_ENABLED", default=True),
+            ai_ollama_url=(_get(env, "AI_OLLAMA_URL") or "").rstrip("/") or None,
+            ai_local_place=_get(env, "AI_LOCAL_PLACE") or cls.ai_local_place,
+            ai_local_country=(_get(env, "AI_LOCAL_COUNTRY") or cls.ai_local_country).upper(),
+            ai_local_context=_number(env, "AI_LOCAL_CONTEXT", cls.ai_local_context),
+            ai_local_models=tuple(
+                m.strip() for m in (_get(env, "AI_LOCAL_MODELS") or "").split(",") if m.strip()
+            ),
+            ai_margin_percent=_number(env, "AI_MARGIN_PERCENT", cls.ai_margin_percent),
+            ai_usd_to_eur=_rate(env, "AI_USD_TO_EUR", cls.ai_usd_to_eur),
+            ai_fees_and_tax_percent=_number(
+                env, "AI_FEES_AND_TAX_PERCENT", cls.ai_fees_and_tax_percent
+            ),
+            ai_keys_file=_get(env, "AI_KEYS_FILE"),
+            seller_legal_name=_get(env, "SELLER_LEGAL_NAME"),
+            seller_trading_name=_get(env, "SELLER_TRADING_NAME") or cls.seller_trading_name,
+            seller_business_id=_get(env, "SELLER_BUSINESS_ID"),
+            seller_address=_get(env, "SELLER_ADDRESS"),
+            seller_email=_get(env, "SELLER_EMAIL"),
+            seller_phone=_get(env, "SELLER_PHONE"),
+            seller_privacy_email=_get(env, "SELLER_PRIVACY_EMAIL"),
+            seller_processors=tuple(
+                line.strip()
+                for line in (_get(env, "SELLER_PROCESSORS") or "").split("|")
+                if line.strip()
+            ),
+            **_paddle(env),
+        )
+
+
+def _flag(env: Mapping[str, str], name: str, *, default: bool) -> bool:
+    raw = (_get(env, name) or "").strip().lower()
+    if not raw:
+        return default
+    if raw not in ("true", "false", "1", "0", "yes", "no"):
+        raise ConfigError(f"PEERVIEW_{name} must be true or false")
+    return raw in ("true", "1", "yes")
+
+
+def _number(env: Mapping[str, str], name: str, default: int) -> int:
+    raw = _get(env, name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        raise ConfigError(f"PEERVIEW_{name} must be a whole number") from None
+    if value < 0:
+        raise ConfigError(f"PEERVIEW_{name} cannot be negative")
+    return value
+
+
+def _rate(env: Mapping[str, str], name: str, default: str) -> str:
+    raw = (_get(env, name) or default).strip()
+    try:
+        value = Decimal(raw)
+    except InvalidOperation:
+        raise ConfigError(f"PEERVIEW_{name} must be a number such as 0.92") from None
+    if not Decimal("0.1") <= value <= Decimal(10):
+        raise ConfigError(f"PEERVIEW_{name} must be between 0.1 and 10")
+    return raw
+
+
+def _paddle(env: Mapping[str, str]) -> dict[str, Any]:
+    environment = (_get(env, "PADDLE_ENVIRONMENT") or "sandbox").strip().lower()
+    if environment not in ("sandbox", "production"):
+        raise ConfigError("PEERVIEW_PADDLE_ENVIRONMENT must be sandbox or production")
+    token = _get(env, "PADDLE_CLIENT_TOKEN")
+    start = "test_" if environment == "sandbox" else "live_"
+    if token and not token.startswith(start):
+        raise ConfigError(
+            f"PEERVIEW_PADDLE_CLIENT_TOKEN: a {environment} client-side token starts with {start}"
+        )
+    packs: list[tuple[str, int]] = []
+    for item in (_get(env, "PADDLE_PACKS") or "").split(","):
+        if not item.strip():
+            continue
+        price, _, amount = item.strip().partition(":")
+        if not price.startswith("pri_") or not amount.strip().isdigit():
+            raise ConfigError(
+                f"PEERVIEW_PADDLE_PACKS: write each pack as pri_...:euros, not {item.strip()!r}"
+            )
+        packs.append((price, int(amount)))
+    return {
+        "paddle_environment": environment,
+        "paddle_client_token": token,
+        "paddle_webhook_secret": _get(env, "PADDLE_WEBHOOK_SECRET"),
+        "paddle_packs": tuple(packs),
+    }
+
+
+def _get(env: Mapping[str, str], name: str) -> str | None:
+    return env.get(f"PEERVIEW_{name}") or None
+
+
+def _aliases(env: Mapping[str, str], base_url: str) -> tuple[str, ...]:
+    """Other addresses of the site, as origins: scheme and host, lower-case, no path."""
+    main = _origin(base_url)
+    found: list[str] = []
+    for entry in (env.get("PEERVIEW_ALIASES") or "").split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        parts = urlsplit(entry)
+        if parts.scheme not in ("http", "https") or not parts.netloc:
+            raise ConfigError(f"alias {entry!r} must start with http:// or https://")
+        if parts.path not in ("", "/") or parts.query or parts.fragment:
+            raise ConfigError(f"alias {entry!r} must be only the address, without a path")
+        origin = _origin(entry)
+        if origin == main:
+            raise ConfigError(f"alias {entry!r} is the same as base_url")
+        if origin not in found:
+            found.append(origin)
+    return tuple(found)
+
+
+def _origin(url: str) -> str:
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc.lower()}"
+
+
+def _apple_key(env: Mapping[str, str]) -> str | None:
+    inline = _get(env, "APPLE_PRIVATE_KEY")
+    if inline:
+        return inline
+    path = _get(env, "APPLE_PRIVATE_KEY_FILE")
+    return Path(path).read_text() if path else None
+
+
+def _log_level(env: Mapping[str, str]) -> str:
+    level = (_get(env, "LOG_LEVEL") or Settings.log_level).upper()
+    if level not in LEVELS:
+        raise ConfigError(f"PEERVIEW_LOG_LEVEL must be one of {', '.join(LEVELS)}, not {level!r}")
+    return level
+
+
+def _policy(env: Mapping[str, str]) -> VerificationPolicy:
+    raw = env.get("PEERVIEW_REQUIRE_VERIFIED_EMAIL_FOR")
+    if raw is None:
+        return DEFAULT_POLICY
+    try:
+        names = [n for n in raw.split(",") if n.strip()]
+        return VerificationPolicy(parse_actions(names))
+    except ValueError as e:
+        raise ConfigError(f"PEERVIEW_REQUIRE_VERIFIED_EMAIL_FOR: {e}") from None
+
+
+# (section, key) -> environment variable name (without the PEERVIEW_ prefix)
+_KEYS: dict[tuple[str, str], str] = {
+    ("server", "base_url"): "BASE_URL",
+    ("server", "secret_key"): "SECRET_KEY",
+    ("database", "url"): "DATABASE_URL",
+    ("mail", "smtp_host"): "SMTP_HOST",
+    ("mail", "smtp_port"): "SMTP_PORT",
+    ("mail", "smtp_user"): "SMTP_USER",
+    ("mail", "smtp_password"): "SMTP_PASSWORD",
+    ("mail", "smtp_security"): "SMTP_SECURITY",
+    ("mail", "from"): "MAIL_FROM",
+    ("cache", "url"): "CACHE_URL",
+    ("logging", "level"): "LOG_LEVEL",
+    ("ai", "enabled"): "AI_ENABLED",
+    ("ai", "ollama_url"): "AI_OLLAMA_URL",
+    ("ai", "local_place"): "AI_LOCAL_PLACE",
+    ("ai", "local_country"): "AI_LOCAL_COUNTRY",
+    ("ai", "local_context"): "AI_LOCAL_CONTEXT",
+    ("ai", "margin_percent"): "AI_MARGIN_PERCENT",
+    ("ai", "usd_to_eur"): "AI_USD_TO_EUR",
+    ("ai", "fees_and_tax_percent"): "AI_FEES_AND_TAX_PERCENT",
+    ("ai", "keys_file"): "AI_KEYS_FILE",
+    ("seller", "legal_name"): "SELLER_LEGAL_NAME",
+    ("seller", "trading_name"): "SELLER_TRADING_NAME",
+    ("seller", "business_id"): "SELLER_BUSINESS_ID",
+    ("seller", "address"): "SELLER_ADDRESS",
+    ("seller", "email"): "SELLER_EMAIL",
+    ("seller", "phone"): "SELLER_PHONE",
+    ("seller", "privacy_email"): "SELLER_PRIVACY_EMAIL",
+    ("paddle", "environment"): "PADDLE_ENVIRONMENT",
+    ("paddle", "client_token"): "PADDLE_CLIENT_TOKEN",
+    ("paddle", "webhook_secret"): "PADDLE_WEBHOOK_SECRET",
+    ("login.google", "client_id"): "GOOGLE_CLIENT_ID",
+    ("login.google", "client_secret"): "GOOGLE_CLIENT_SECRET",
+    ("login.apple", "client_id"): "APPLE_CLIENT_ID",
+    ("login.apple", "team_id"): "APPLE_TEAM_ID",
+    ("login.apple", "key_id"): "APPLE_KEY_ID",
+    ("login.apple", "private_key"): "APPLE_PRIVATE_KEY",
+    ("login.haka", "entity_id"): "HAKA_ENTITY_ID",
+    ("login.haka", "cert_file"): "HAKA_CERT_FILE",
+    ("login.haka", "key_file"): "HAKA_KEY_FILE",
+    ("login.haka", "metadata_url"): "HAKA_METADATA_URL",
+    ("login.haka", "metadata_cert"): "HAKA_METADATA_CERT",
+    ("login.haka", "metadata_file"): "HAKA_METADATA_FILE",
+    ("login.haka", "discovery_url"): "HAKA_DISCOVERY_URL",
+    ("login.haka", "idp_entity_id"): "HAKA_IDP_ENTITY_ID",
+}
+# Secrets that may be read from a file instead: (section, "<key>_file") -> the key it fills.
+_SECRET_FILES: dict[tuple[str, str], tuple[str, str]] = {
+    ("server", "secret_key_file"): ("server", "secret_key"),
+    ("paddle", "webhook_secret_file"): ("paddle", "webhook_secret"),
+    ("login.apple", "private_key_file"): ("login.apple", "private_key"),
+}
+_PATH_KEYS = {
+    "HAKA_CERT_FILE",
+    "HAKA_KEY_FILE",
+    "HAKA_METADATA_FILE",
+    "HAKA_METADATA_CERT",
+    "AI_KEYS_FILE",
+}
+_SECRET_KEYS = {
+    "SECRET_KEY",
+    "SMTP_PASSWORD",
+    "GOOGLE_CLIENT_SECRET",
+    "APPLE_PRIVATE_KEY",
+    "CACHE_URL",  # may carry a password
+    "PADDLE_WEBHOOK_SECRET",
+}
+_POLICY_KEY = ("policy", "require_verified_email_for")
+_ALIASES_KEY = ("server", "aliases")
+_LOCAL_MODELS_KEY = ("ai", "local_models")
+_PROCESSORS_KEY = ("seller", "processors")
+_PACKS_KEY = ("paddle", "packs")
+_INT_KEYS = {"SMTP_PORT", "AI_LOCAL_CONTEXT", "AI_MARGIN_PERCENT", "AI_FEES_AND_TAX_PERCENT"}
+_BOOL_KEYS = {"AI_ENABLED"}
+
+
+def load_settings(
+    env: Mapping[str, str], search: Sequence[Path] = DEFAULT_CONFIG_PATHS
+) -> Settings:
+    """Read the config file (if any), then let PEERVIEW_* variables override it."""
+    env = _old_names(env)
+    explicit = env.get("PEERVIEW_CONFIG")
+    path: Path | None = None
+    if explicit:
+        path = Path(explicit)
+        if not path.is_file():
+            raise ConfigError(f"PEERVIEW_CONFIG points to {path}, which is not a file")
+    else:
+        path = next((p for p in search if p.is_file()), None)
+        if path is not None and path in OLD_CONFIG_PATHS:
+            logger.warning("{} has the old name; move it to /etc/peerview/peerview.toml", path)
+    merged: dict[str, str] = {}
+    if path is not None:
+        merged.update(_read_file(path))
+    merged.update({k: v for k, v in env.items() if k.startswith("PEERVIEW_")})
+    return Settings.from_env(merged)
+
+
+def _old_names(env: Mapping[str, str]) -> dict[str, str]:
+    """PREVIEWIT_* variables count as PEERVIEW_* ones, unless the new name is set too."""
+    out = dict(env)
+    old = sorted(
+        name
+        for name in env
+        if name.startswith(OLD_PREFIX) and PREFIX + name[len(OLD_PREFIX) :] not in env
+    )
+    for name in old:
+        out[PREFIX + name[len(OLD_PREFIX) :]] = env[name]
+    if old:
+        logger.warning("rename these settings to PEERVIEW_*: {}", ", ".join(old))
+    return out
+
+
+def _read_file(path: Path) -> dict[str, str]:
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as e:
+        raise ConfigError(f"cannot read {path}: {e}") from None
+    base = path.resolve().parent
+    flat: dict[tuple[str, str], Any] = {}
+    _flatten(data, "", flat)
+    out: dict[str, str] = {}
+    has_secret = False
+    for (section, key), value in flat.items():
+        where = f"{section}.{key}"
+        if (section, key) == _POLICY_KEY:
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                raise ConfigError(f"{path}: {where} must be a list of action names")
+            try:
+                parse_actions(value)
+            except ValueError as e:
+                raise ConfigError(f"{path}: {where}: {e}") from None
+            out["PEERVIEW_REQUIRE_VERIFIED_EMAIL_FOR"] = ",".join(value)
+        elif (section, key) == _ALIASES_KEY:
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                raise ConfigError(f"{path}: {where} must be a list of addresses")
+            out["PEERVIEW_ALIASES"] = ",".join(value)
+        elif (section, key) == _LOCAL_MODELS_KEY:
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                raise ConfigError(f"{path}: {where} must be a list of model names")
+            out["PEERVIEW_AI_LOCAL_MODELS"] = ",".join(value)
+        elif (section, key) == _PROCESSORS_KEY:
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                raise ConfigError(f"{path}: {where} must be a list of lines")
+            out["PEERVIEW_SELLER_PROCESSORS"] = "|".join(v.replace("|", "/") for v in value)
+        elif (section, key) == _PACKS_KEY:
+            if not isinstance(value, dict) or not all(
+                isinstance(k, str) and isinstance(v, int) and not isinstance(v, bool)
+                for k, v in value.items()
+            ):
+                raise ConfigError(f"{path}: {where} must map Paddle price ids to whole euros")
+            out["PEERVIEW_PADDLE_PACKS"] = ",".join(f"{k}:{v}" for k, v in value.items())
+        elif (section, key) in _SECRET_FILES:
+            target = _SECRET_FILES[(section, key)]
+            if target in flat:
+                both = f"{target[0]}.{target[1]}"
+                raise ConfigError(f"{path}: set either {both} or {where}, not both")
+            out[f"PEERVIEW_{_KEYS[target]}"] = _read_secret(path, where, value, base)
+            has_secret = True
+        elif (section, key) in _KEYS:
+            name = _KEYS[(section, key)]
+            out[f"PEERVIEW_{name}"] = _scalar(path, where, value, name, base)
+            has_secret = has_secret or name in _SECRET_KEYS
+        else:
+            raise ConfigError(f"{path}: unknown setting {where}")
+    if has_secret:
+        _warn_if_open(path)
+    return out
+
+
+def _flatten(node: Mapping[str, Any], prefix: str, out: dict[tuple[str, str], Any]) -> None:
+    for key, value in node.items():
+        if isinstance(value, dict) and (prefix, key) != _PACKS_KEY:  # packs are a table of values
+            name = f"{prefix}.{key}" if prefix else key
+            if not any(sec == name or sec.startswith(name + ".") for sec, _ in _all_sections()):
+                raise ConfigError(f"unknown section [{name}]")
+            _flatten(value, name, out)
+        elif not prefix:
+            raise ConfigError(f"setting {key!r} must be inside a section")
+        else:
+            out[(prefix, key)] = value
+
+
+def _all_sections() -> set[tuple[str, str]]:
+    return (
+        set(_KEYS)
+        | set(_SECRET_FILES)
+        | {_POLICY_KEY, _ALIASES_KEY, _LOCAL_MODELS_KEY, _PROCESSORS_KEY, _PACKS_KEY}
+    )
+
+
+def _scalar(path: Path, where: str, value: Any, name: str, base: Path) -> str:
+    if name in _BOOL_KEYS:
+        if not isinstance(value, bool):
+            raise ConfigError(f"{path}: {where} must be true or false")
+        return "true" if value else "false"
+    if name in _INT_KEYS:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ConfigError(f"{path}: {where} must be a number")
+        return str(value)
+    if not isinstance(value, str):
+        raise ConfigError(f"{path}: {where} must be text")
+    if name in _PATH_KEYS and not Path(value).is_absolute():
+        return str(base / value)
+    return value
+
+
+def _read_secret(path: Path, where: str, value: Any, base: Path) -> str:
+    if not isinstance(value, str):
+        raise ConfigError(f"{path}: {where} must be a file path")
+    file = Path(value)
+    file = file if file.is_absolute() else base / file
+    try:
+        text = file.read_text(encoding="utf-8")
+    except OSError as e:
+        raise ConfigError(f"{path}: {where}: cannot read {file}: {e}") from None
+    return text.strip() if "PRIVATE KEY" not in text else text
+
+
+def _warn_if_open(path: Path) -> None:
+    try:
+        mode = path.stat().st_mode
+    except OSError:
+        return
+    if mode & 0o044:  # group- or world-readable
+        logger.warning("{} holds secrets and is readable by others; run: chmod 600 {}", path, path)

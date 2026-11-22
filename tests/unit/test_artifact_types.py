@@ -1,14 +1,14 @@
 import pytest
 
-from previewit.application.artifacts import (
+from peerview.application.artifacts import (
     ArtifactError,
     ArtifactRegistry,
     ArtifactType,
     UnknownArtifactType,
     Upload,
 )
-from previewit.plugins.pdf import PdfArtifact
-from previewit.plugins.text import TextArtifact
+from peerview.plugins.pdf import PdfArtifact
+from peerview.plugins.text import TextArtifact
 
 PDF = b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
 

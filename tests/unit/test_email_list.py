@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from previewit.domain.email_list import (
+from peerview.domain.email_list import (
     MAX_EMAILS,
     MAX_FILE_BYTES,
     SAMPLES,

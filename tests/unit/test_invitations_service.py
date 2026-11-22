@@ -5,21 +5,21 @@ from itertools import count
 
 import pytest
 
-from previewit.application.artifacts import Upload
-from previewit.application.auth import AuthService, EmailTaken, NotAGuest, WeakPassword
-from previewit.application.calls import ShareLimitReached
-from previewit.application.invitations import (
+from peerview.application.artifacts import Upload
+from peerview.application.auth import AuthService, EmailTaken, NotAGuest, WeakPassword
+from peerview.application.calls import ShareLimitReached
+from peerview.application.invitations import (
     AccountExists,
     InvalidInvitationLink,
     InvitationsService,
     WrongEmail,
 )
-from previewit.application.ports import MailError
-from previewit.application.tenancy import Forbidden, NotFound, VerificationRequired
-from previewit.domain.identity import Email, User, UserId
-from previewit.domain.invitations import InvalidInvitation
-from previewit.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
-from previewit.domain.tenancy import Role
+from peerview.application.ports import MailError
+from peerview.application.tenancy import Forbidden, NotFound, VerificationRequired
+from peerview.domain.identity import Email, User, UserId
+from peerview.domain.invitations import InvalidInvitation
+from peerview.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
+from peerview.domain.tenancy import Role
 from tests.unit.test_auth_service import FakeHasher as PlainHasher
 from tests.unit.test_calls_service import PAT, SAM, SUE, TINA
 from tests.unit.test_rounds_service import RoundsWorld
@@ -69,7 +69,7 @@ class InviteWorld(RoundsWorld):
             lambda: f"v{next(self._ids)}",
             self.clock,
             mailer=self.mail,
-            base_url="https://previewit.test/",
+            base_url="https://peerview.test/",
             policy=policy,
         )
 
@@ -342,16 +342,16 @@ def test_deleting_a_round_deletes_its_invitations(w: InviteWorld):
     assert w.iv.preview(token) is None
 
 
-# --- Previewit sends the invitation, with the organizer's cover letter -----------------------
+# --- peerview.it sends the invitation, with the organizer's cover letter -----------------------
 
 
-def test_previewit_mails_the_invitation_with_the_cover_letter(w: InviteWorld):
+def test_peerview_mails_the_invitation_with_the_cover_letter(w: InviteWorld):
     _, token = w.iv.invite(TINA, w.r.id, "rita@x.fi", [w.work_by[SAM].id])
     w.iv.send(TINA, w.r.id, token, "  Dear Rita,\nyour view on my course matters.  ")
     [(to, subject, body)] = w.mail.sent
     assert to == "rita@x.fi" and w.call.title in subject
     assert "Dear Rita,\nyour view on my course matters." in body
-    assert f"https://previewit.test/i/{token}" in body
+    assert f"https://peerview.test/i/{token}" in body
     assert "Tina" in body and "rita@x.fi" in body  # who asked, and which address works
     assert w.iv.invitations(TINA, w.r.id)[0].sent
 

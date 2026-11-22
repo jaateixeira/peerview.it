@@ -14,52 +14,52 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from previewit.adapters.auth.base import AuthFailed, ExternalProvider
-from previewit.adapters.auth.passwords import Argon2Hasher
-from previewit.adapters.entitlements import UnlimitedEntitlements
-from previewit.adapters.persistence.memory import (
+from peerview.adapters.auth.base import AuthFailed, ExternalProvider
+from peerview.adapters.auth.passwords import Argon2Hasher
+from peerview.adapters.entitlements import UnlimitedEntitlements
+from peerview.adapters.persistence.memory import (
     InMemoryEmailTokenRepository,
     InMemoryTenancyRepository,
     InMemoryUserRepository,
 )
-from previewit.adapters.persistence.memory_ai_reviews import InMemoryAiReviewRepository
-from previewit.adapters.persistence.memory_calls import InMemoryCallRepository
-from previewit.adapters.persistence.memory_credits import InMemoryCreditRepository
-from previewit.adapters.persistence.memory_prepared import InMemoryPreparedRequestRepository
-from previewit.adapters.persistence.memory_reviews import InMemoryReviewRepository
-from previewit.adapters.persistence.memory_rounds import InMemoryRoundRepository
-from previewit.adapters.persistence.memory_rubrics import InMemoryRubricRepository
-from previewit.adapters.settings import Settings
-from previewit.adapters.web.app import build_app
-from previewit.application.ai_reviews import AiReviewsService
-from previewit.application.allocation import StrategyRegistry
-from previewit.application.artifacts import ArtifactRegistry, PluginServices
-from previewit.application.auth import AuthService
-from previewit.application.calls import CallsService
-from previewit.application.credits import CreditsService
-from previewit.application.criteria import CriterionRegistry
-from previewit.application.invitations import InvitationsService
-from previewit.application.ports import MailError
-from previewit.application.prepared_requests import PreparedRequestsService
-from previewit.application.quick_review import QuickReviewService
-from previewit.application.reviews import ReviewsService
-from previewit.application.rounds import RoundsService
-from previewit.application.rubrics import RubricsService
-from previewit.application.tenancy import TenancyService
-from previewit.application.verification import VerificationService
-from previewit.domain.credits import CreditPack
-from previewit.domain.identity import Email, ExternalClaims, Provider
-from previewit.domain.policy import DEFAULT_POLICY, VerificationPolicy
-from previewit.plugins.allocation import ManualStrategy, RandomStrategy, RoundRobinStrategy
-from previewit.plugins.criteria import (
+from peerview.adapters.persistence.memory_ai_reviews import InMemoryAiReviewRepository
+from peerview.adapters.persistence.memory_calls import InMemoryCallRepository
+from peerview.adapters.persistence.memory_credits import InMemoryCreditRepository
+from peerview.adapters.persistence.memory_prepared import InMemoryPreparedRequestRepository
+from peerview.adapters.persistence.memory_reviews import InMemoryReviewRepository
+from peerview.adapters.persistence.memory_rounds import InMemoryRoundRepository
+from peerview.adapters.persistence.memory_rubrics import InMemoryRubricRepository
+from peerview.adapters.settings import Settings
+from peerview.adapters.web.app import build_app
+from peerview.application.ai_reviews import AiReviewsService
+from peerview.application.allocation import StrategyRegistry
+from peerview.application.artifacts import ArtifactRegistry, PluginServices
+from peerview.application.auth import AuthService
+from peerview.application.calls import CallsService
+from peerview.application.credits import CreditsService
+from peerview.application.criteria import CriterionRegistry
+from peerview.application.invitations import InvitationsService
+from peerview.application.ports import MailError
+from peerview.application.prepared_requests import PreparedRequestsService
+from peerview.application.quick_review import QuickReviewService
+from peerview.application.reviews import ReviewsService
+from peerview.application.rounds import RoundsService
+from peerview.application.rubrics import RubricsService
+from peerview.application.tenancy import TenancyService
+from peerview.application.verification import VerificationService
+from peerview.domain.credits import CreditPack
+from peerview.domain.identity import Email, ExternalClaims, Provider
+from peerview.domain.policy import DEFAULT_POLICY, VerificationPolicy
+from peerview.plugins.allocation import ManualStrategy, RandomStrategy, RoundRobinStrategy
+from peerview.plugins.criteria import (
     LevelsCriterion,
     NumericCriterion,
     TextCriterion,
     YesNoCriterion,
 )
-from previewit.plugins.pdf import PdfArtifact
-from previewit.plugins.text import TextArtifact
-from previewit.plugins.webpage import WebPageArtifact
+from peerview.plugins.pdf import PdfArtifact
+from peerview.plugins.text import TextArtifact
+from peerview.plugins.webpage import WebPageArtifact
 from tests.unit.test_ai_models import CHEAP, LOCAL
 from tests.unit.test_ai_reviews_service import (
     HOUSE,

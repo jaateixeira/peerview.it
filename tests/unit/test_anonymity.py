@@ -1,7 +1,7 @@
 from hypothesis import given
 from hypothesis import strategies as st
 
-from previewit.domain.anonymity import AnonymityPolicy, RevealAt, Viewer, is_revealed
+from peerview.domain.anonymity import AnonymityPolicy, RevealAt, Viewer, is_revealed
 
 policies = st.builds(
     AnonymityPolicy,

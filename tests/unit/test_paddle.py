@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from previewit.adapters.ai.keys import KeysFileError, load_house_keys
-from previewit.adapters.payments.paddle import PaddleNotifications, sign, signature_ok
+from peerview.adapters.ai.keys import KeysFileError, load_house_keys
+from peerview.adapters.payments.paddle import PaddleNotifications, sign, signature_ok
 from tests.unit.test_credits import ADA, World
 
 SECRET = "pdl_ntfset_01test_secret"
@@ -90,7 +90,7 @@ def test_other_events_are_acknowledged_and_ignored(w: World) -> None:
     assert paddle(w).handle(sign(body, SECRET, NOW), body) == 200
 
 
-def test_previewits_own_keys_come_from_a_private_file(tmp_path: Path) -> None:
+def test_peerviews_own_keys_come_from_a_private_file(tmp_path: Path) -> None:
     file = tmp_path / "ai-keys.toml"
     file.write_text('anthropic = " sk-ant-house "\n')
     os.chmod(file, 0o600)

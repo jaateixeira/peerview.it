@@ -9,9 +9,9 @@ from decimal import Decimal
 
 import pytest
 
-from previewit.adapters.persistence.memory_ai_reviews import InMemoryAiReviewRepository
-from previewit.adapters.persistence.memory_credits import InMemoryCreditRepository
-from previewit.application.ai_reviews import (
+from peerview.adapters.persistence.memory_ai_reviews import InMemoryAiReviewRepository
+from peerview.adapters.persistence.memory_credits import InMemoryCreditRepository
+from peerview.application.ai_reviews import (
     AiAnswer,
     AiChoice,
     AiPrompt,
@@ -19,14 +19,14 @@ from previewit.application.ai_reviews import (
     AiServiceError,
     InvalidAiRequest,
 )
-from previewit.application.artifacts import PluginServices, Upload
-from previewit.application.credits import CreditsService
-from previewit.application.tenancy import NotFound
-from previewit.domain.ai_models import ModelCard
-from previewit.domain.ai_reviews import AiReviewId, AiReviewStatus, Payer
-from previewit.domain.credits import CreditKind, CreditPack, CreditPricing
-from previewit.domain.identity import UserId
-from previewit.plugins.webpage import WebPageArtifact
+from peerview.application.artifacts import PluginServices, Upload
+from peerview.application.credits import CreditsService
+from peerview.application.tenancy import NotFound
+from peerview.domain.ai_models import ModelCard
+from peerview.domain.ai_reviews import AiReviewId, AiReviewStatus, Payer
+from peerview.domain.credits import CreditKind, CreditPack, CreditPricing
+from peerview.domain.identity import UserId
+from peerview.plugins.webpage import WebPageArtifact
 from tests.unit.test_ai_models import CHEAP, LOCAL, STRONG, card
 from tests.unit.test_calls_service import SUE
 from tests.unit.test_invitations_service import InviteWorld, Outbox
@@ -35,7 +35,7 @@ from tests.unit.test_tenancy_service import SAM, TINA
 from tests.unit.test_webpage_plugin import ESSAY, FakePageChecker
 
 KEY = "sk-ant-secret-0123456789"
-HOUSE = "sk-ant-previewits-own-key-9876"  # Previewit's key, for reviews paid with credit
+HOUSE = "sk-ant-peerviews-own-key-9876"  # peerview.it's key, for reviews paid with credit
 PRICING = CreditPricing(usd_to_eur=Decimal(1), margin=Decimal("0.3"), fees_and_tax=Decimal(0))
 SONNET = replace(STRONG, key_label="Anthropic API key", key_url="https://console.example/keys")
 TINY = card(
@@ -115,7 +115,7 @@ class AiWorld(InviteWorld):
         ids = iter(range(1, 1000))
         self.ai = AiReviewsService(
             self.repo, self.catalog, self.writer, self.jobs, self.c, self.c._artifacts,
-            self.users, self.limits, self.mail, base_url="https://previewit.test/",
+            self.users, self.limits, self.mail, base_url="https://peerview.test/",
             ids=lambda: f"ai{next(ids)}", now=self.clock, pricing=PRICING, credits=self.credits,
             house_keys={"anthropic": HOUSE},
         )  # fmt: skip
@@ -180,7 +180,7 @@ def test_the_author_asks_with_a_key_and_the_review_arrives(w: AiWorld) -> None:
     assert KEY not in w.everything_kept()  # the key was used once and never kept
     [(to, subject, body)] = w.mail.sent
     assert to == f"{SAM}@x.fi" and "ready" in subject.lower()
-    assert f"https://previewit.test/submissions/{w.sam_essay}#ai-reviews" in body
+    assert f"https://peerview.test/submissions/{w.sam_essay}#ai-reviews" in body
     assert KEY not in body
 
 
@@ -191,7 +191,7 @@ def test_a_free_model_needs_no_key(w: AiWorld) -> None:
     assert w.ai.reviews_for(SAM, w.sam_essay)[0].cost_usd == 0
 
 
-def test_a_model_previewit_cannot_pay_for_needs_a_key(w: AiWorld) -> None:
+def test_a_model_peerview_cannot_pay_for_needs_a_key(w: AiWorld) -> None:
     assert not w.ai.credit_for(CHEAP) and w.ai.credit_for(SONNET) and not w.ai.credit_for(LOCAL)
     with pytest.raises(InvalidAiRequest, match="needs your key"):  # no house key for it
         w.ai.request(SAM, w.sam_essay, [AiChoice(CHEAP.key)])
@@ -207,7 +207,7 @@ def test_without_credit_a_review_paid_from_credit_is_refused(w: AiWorld) -> None
     assert w.ai.reviews_for(SAM, w.sam_essay) == [] and w.writer.calls == []
 
 
-def test_credit_pays_with_previewits_key_and_only_what_the_review_cost(w: AiWorld) -> None:
+def test_credit_pays_with_peerviews_key_and_only_what_the_review_cost(w: AiWorld) -> None:
     w.credits.record_purchase("txn_1", SAM, [("pri_5", 1)], paid_cents=500)
     [review] = w.ai.request(SAM, w.sam_essay, [AiChoice(SONNET.key)])
     assert review.payer is Payer.CREDIT and review.credit_cents > 0  # held while written
@@ -240,7 +240,7 @@ def test_a_review_paid_with_credit_runs_again_after_a_restart(w: AiWorld) -> Non
     w.ai.recover()
     [(review_id, key, free)] = w.jobs.held
     assert (key, free) == ("", False)
-    w.ai.run(review_id, key)  # Previewit's own key is used, from its configuration
+    w.ai.run(review_id, key)  # peerview.it's own key is used, from its configuration
     assert w.writer.calls[-1][1] == HOUSE
     assert w.ai.reviews_for(SAM, w.sam_essay)[0].status is AiReviewStatus.DONE
 
@@ -318,7 +318,7 @@ def test_after_a_restart_free_reviews_run_again_and_keyed_ones_ask_again(w: AiWo
     w.jobs.hold = True
     w.ai.request(SAM, w.sam_essay, [AiChoice(LOCAL.key), AiChoice(SONNET.key, KEY)])
     assert {r.status for r in w.ai.reviews_for(SAM, w.sam_essay)} == {AiReviewStatus.WAITING}
-    w.jobs.held.clear()  # Previewit restarts: the queue and the key are gone
+    w.jobs.held.clear()  # peerview.it restarts: the queue and the key are gone
     w.ai.recover()
     assert [(key, free) for _, key, free in w.jobs.held] == [("", True)]
     by_payer = {r.payer: r for r in w.ai.reviews_for(SAM, w.sam_essay)}

@@ -1,11 +1,11 @@
-from previewit.adapters.cache import MemoryCache
-from previewit.adapters.persistence.cached_users import (
+from peerview.adapters.cache import MemoryCache
+from peerview.adapters.persistence.cached_users import (
     CachedUserRepository,
     dump_user,
     load_user,
 )
-from previewit.adapters.persistence.memory import InMemoryUserRepository
-from previewit.domain.identity import Email, IdentityKey, Provider, User, UserId
+from peerview.adapters.persistence.memory import InMemoryUserRepository
+from peerview.domain.identity import Email, IdentityKey, Provider, User, UserId
 
 ANN = UserId("ann")
 

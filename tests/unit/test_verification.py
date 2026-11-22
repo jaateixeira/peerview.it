@@ -2,12 +2,12 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from previewit.adapters.persistence.memory import (
+from peerview.adapters.persistence.memory import (
     InMemoryEmailTokenRepository,
     InMemoryUserRepository,
 )
-from previewit.application.verification import SendResult, VerificationService
-from previewit.domain.identity import Email, User, UserId
+from peerview.application.verification import SendResult, VerificationService
+from peerview.domain.identity import Email, User, UserId
 
 T0 = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
 

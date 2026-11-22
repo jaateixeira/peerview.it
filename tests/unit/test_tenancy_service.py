@@ -3,11 +3,11 @@ from itertools import count
 
 import pytest
 
-from previewit.adapters.persistence.memory import (
+from peerview.adapters.persistence.memory import (
     InMemoryTenancyRepository,
     InMemoryUserRepository,
 )
-from previewit.application.tenancy import (
+from peerview.application.tenancy import (
     Forbidden,
     InvalidInvite,
     NotAMember,
@@ -15,9 +15,9 @@ from previewit.application.tenancy import (
     TenancyService,
     VerificationRequired,
 )
-from previewit.domain.identity import Email, User, UserId
-from previewit.domain.policy import Action, VerificationPolicy
-from previewit.domain.tenancy import DEFAULT_ROLES, InvalidName, OrgRole, Role
+from peerview.domain.identity import Email, User, UserId
+from peerview.domain.policy import Action, VerificationPolicy
+from peerview.domain.tenancy import DEFAULT_ROLES, InvalidName, OrgRole, Role
 
 T0 = datetime(2026, 11, 12, 12, 0, tzinfo=UTC)
 

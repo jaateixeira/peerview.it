@@ -1,12 +1,12 @@
 import pytest
 
-from previewit.application.criteria import (
+from peerview.application.criteria import (
     CriterionError,
     CriterionRegistry,
     CriterionType,
     UnknownCriterionType,
 )
-from previewit.plugins.criteria import (
+from peerview.plugins.criteria import (
     LevelsCriterion,
     NumericCriterion,
     TextCriterion,

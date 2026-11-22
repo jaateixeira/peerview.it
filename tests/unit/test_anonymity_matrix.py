@@ -8,7 +8,7 @@ import dataclasses
 
 import pytest
 
-from previewit.domain.anonymity import AnonymityPolicy, RevealAt, Viewer, is_revealed
+from peerview.domain.anonymity import AnonymityPolicy, RevealAt, Viewer, is_revealed
 
 ORG, A, R, X = Viewer.ORGANIZER, Viewer.AUTHOR, Viewer.REVIEWER, Viewer.OTHER_REVIEWER
 

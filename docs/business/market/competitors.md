@@ -25,7 +25,7 @@ quadrantChart
     quadrant-2 Open but narrow
     quadrant-3 Closed and narrow
     quadrant-4 Closed and broad
-    Previewit: [0.88, 0.9]
+    peerview.it: [0.88, 0.9]
     Gerrit: [0.12, 0.88]
     Moodle Workshop: [0.3, 0.78]
     OpenReview: [0.2, 0.68]
@@ -37,7 +37,7 @@ quadrantChart
 
 ## Positioning statement
 
-> For teachers, and later any organisation, who need peers to review work, **Previewit** is the open-source review platform that starts from a single link and handles any artifact and any party structure. Unlike single-purpose tools (FeedbackFruits for courses, EasyChair for papers, Gerrit for code), Previewit runs one review process, with rubrics, rounds, allocation and anonymity, across all of them, hosted in the EU, with source code anyone can inspect.
+> For teachers, and later any organisation, who need peers to review work, **peerview.it** is the open-source review platform that starts from a single link and handles any artifact and any party structure. Unlike single-purpose tools (FeedbackFruits for courses, EasyChair for papers, Gerrit for code), peerview.it runs one review process, with rubrics, rounds, allocation and anonymity, across all of them, hosted in the EU, with source code anyone can inspect.
 
 ## Differentiators (keep to these four)
 

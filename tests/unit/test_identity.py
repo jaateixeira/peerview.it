@@ -2,7 +2,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from previewit.domain.identity import (
+from peerview.domain.identity import (
     CreateUser,
     Email,
     ExternalClaims,

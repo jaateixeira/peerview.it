@@ -2,8 +2,8 @@
 
 import pytest
 
-from previewit.adapters.persistence.sql import SqlUserRepository
-from previewit.adapters.persistence.sql_credits import SqlCreditRepository
+from peerview.adapters.persistence.sql import SqlUserRepository
+from peerview.adapters.persistence.sql_credits import SqlCreditRepository
 from tests.integration.test_tenancy_sql import engine as engine  # fixture
 from tests.unit import test_credits as base
 

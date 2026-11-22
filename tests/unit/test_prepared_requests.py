@@ -9,8 +9,8 @@ from itertools import count
 
 import pytest
 
-from previewit.adapters.persistence.memory_prepared import InMemoryPreparedRequestRepository
-from previewit.application.prepared_requests import (
+from peerview.adapters.persistence.memory_prepared import InMemoryPreparedRequestRepository
+from peerview.application.prepared_requests import (
     ASSISTANT,
     MAX_FILES_WAITING,
     MAX_PENDING,
@@ -98,7 +98,7 @@ def test_a_sent_request_is_forgotten(w: World):
     assert w.s.open("never-made") is None
 
 
-def test_previewit_refuses_when_too_many_are_waiting(w: World):
+def test_peerview_refuses_when_too_many_are_waiting(w: World):
     w.repo.pretend_count = MAX_PENDING
     with pytest.raises(InvalidPreparedRequest, match="too many"):
         w.s.prepare(text="x")

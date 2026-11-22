@@ -5,10 +5,10 @@ import pytest
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
 
-from previewit.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
-from previewit.adapters.persistence.sql_calls import SqlCallRepository
-from previewit.adapters.persistence.sql_rubrics import SqlRubricRepository
-from previewit.adapters.persistence.tables import calls, criteria, organizations, rubrics
+from peerview.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
+from peerview.adapters.persistence.sql_calls import SqlCallRepository
+from peerview.adapters.persistence.sql_rubrics import SqlRubricRepository
+from peerview.adapters.persistence.tables import calls, criteria, organizations, rubrics
 from tests.integration.test_tenancy_sql import engine as engine  # fixture
 from tests.unit import test_rubrics_service as base
 from tests.unit.test_rubrics_service import TINA, RWorld
@@ -44,7 +44,7 @@ def test_a_criterion_cannot_name_a_different_tenant_than_its_rubric(w: RWorld, e
 
 def test_a_call_cannot_use_a_rubric_of_another_tenant(w: RWorld, engine):
     other_org_rubric = None
-    from previewit.domain.rubrics import Rubric, RubricId
+    from peerview.domain.rubrics import Rubric, RubricId
 
     other_org_rubric = Rubric(RubricId("foreign"), w.org_b.id, w.other.id, "B's", "", TINA)
     SqlRubricRepository(engine).add_rubric(other_org_rubric)

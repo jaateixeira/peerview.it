@@ -65,11 +65,11 @@ def test_saying_yes_suggests_three_models_with_flags_and_prices() -> None:
     names = re.findall(r'name="ai_model" value="([^"]+)"', shown.text)
     assert names[:3] == [LOCAL.key, SONNET.key, CHEAP.key]
     assert "See more models (1)" in shown.text  # the light one
-    assert "Free" in shown.text and "Previewit&#39;s own server, Finland" in shown.text
+    assert "Free" in shown.text and "peerview.it&#39;s own server, Finland" in shown.text
     assert "\U0001f1eb\U0001f1ee" in shown.text  # Finland's flag
     assert "With your Anthropic API key: <strong>about" in shown.text
     assert "Without a key: <strong>about €0.04</strong> from your credit" in words(shown.text)
-    assert "Needs your key: Previewit cannot pay for this one." in words(shown.text)  # Mistral
+    assert "Needs your key: peerview.it cannot pay for this one." in words(shown.text)  # Mistral
     assert "Your credit: <strong>€0.00</strong>" in words(shown.text)
     assert 'type="password" name="ai_key_anthropic"' in shown.text
     assert "Leave it empty to pay from your credit." in words(shown.text)

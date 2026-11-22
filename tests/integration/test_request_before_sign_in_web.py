@@ -9,8 +9,8 @@ from urllib.parse import unquote
 
 from fastapi.testclient import TestClient
 
-import previewit.adapters.web.app as web_app
-from previewit.application.prepared_requests import token_hash
+import peerview.adapters.web.app as web_app
+from peerview.application.prepared_requests import token_hash
 from tests.integration.test_quick_review_web import NEW, PDF
 from tests.integration.test_tenancy_web import post, signup
 from tests.integration.web_fakes import csrf_token, make_harness
@@ -35,8 +35,8 @@ def test_a_visitor_gets_the_form_with_a_way_to_sign_in():
     assert page.status_code == 200 and "Get your work reviewed" in page.text
     assert 'href="/signup?next=%2Freview%2Fnew">Create an account' in page.text
     assert 'href="/login?next=%2Freview%2Fnew">Log in' in page.text
-    assert 'hx-post="/pages/check"' not in page.text  # only accounts make Previewit fetch pages
-    assert "Previewit checks it when you send it" in page.text
+    assert 'hx-post="/pages/check"' not in page.text  # only accounts make peerview.it fetch pages
+    assert "peerview.it checks it when you send it" in page.text
     checked = post(visitor, "/review/emails/check", {"emails": "ana@x.fi, nope"}, page=NEW)
     assert checked.status_code == 200 and "does not look like an email address" in checked.text
 
@@ -90,7 +90,7 @@ def test_a_web_page_is_checked_once_the_visitor_has_signed_in():
     assert h.pages.checked == []  # nothing fetched for someone without an account
     signup(visitor, "vera@x.fi", "Vera Visitor", next_=link)
     form = visitor.get(link).text
-    assert "Previewit can reach this page." in form and ESSAY.address in h.pages.checked
+    assert "peerview.it can reach this page." in form and ESSAY.address in h.pages.checked
 
 
 def test_mistakes_are_shown_on_the_form_and_nothing_is_kept():

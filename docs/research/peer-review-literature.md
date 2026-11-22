@@ -67,7 +67,7 @@ flowchart LR
     H --> I["Open and published review"]
 ```
 
-| Design | How it works | Evidence and examples | Previewit today |
+| Design | How it works | Evidence and examples | peerview.it today |
 |---|---|---|---|
 | **1:1 review** | One author, one reviewer, comments only | Enough for formative gains; less reliable for scores | Built: share link (M2) |
 | **Reciprocal pair** | A and B review each other | The classic classroom form; reciprocity bias exists but is small [Magin01] | Built: allocation (M4) |
@@ -101,9 +101,9 @@ flowchart LR
 ## 6. Beyond education
 
 - **Scholarly review.** When reviewers see author names, they favour famous authors and top institutions [Tom17]. Two independent committees disagreed on 23% of NeurIPS 2021 papers [Bey23]. Known problems and tested remedies: expertise matching from text similarity plus bids, fairness-aware and randomized allocation against collusion, rankings against miscalibration, learned aggregation against reviewers weighting criteria differently [Shah22]. Describe any model with the four NISO dimensions: identity transparency, who the reviewer interacts with, what review information is published, post-publication commenting [NISO23].
-- **Code review.** Modern review is lightweight, tool-based and continuous. Its main outcomes are knowledge transfer, shared awareness and better solutions, more than defect finding [Bacc13, Sad18]. The useful lesson for Previewit: review as an open conversation on small changes, with approval rather than a score.
+- **Code review.** Modern review is lightweight, tool-based and continuous. Its main outcomes are knowledge transfer, shared awareness and better solutions, more than defect finding [Bacc13, Sad18]. The useful lesson for peerview.it: review as an open conversation on small changes, with approval rather than a score.
 
-## 7. Implications for Previewit
+## 7. Implications for peerview.it
 
 All of these are **proposed**: confirm before building.
 

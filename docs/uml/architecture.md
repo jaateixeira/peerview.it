@@ -59,7 +59,7 @@ flowchart TB
 ## Source layout
 
 ```
-src/previewit/
+src/peerview/
   bootstrap.py     composition root
   domain/          party.py, anonymity.py
   application/     (empty)

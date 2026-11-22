@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the full Previewit test suite: lint, types, layering, unit, integration and
+# Run the full peerview.it test suite: lint, types, layering, unit, integration and
 # browser acceptance tests (same as CI: `make check`).
 #
 # Usage:  utils/run_full_test_suite.sh

@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from previewit.adapters.mcp import TOOL_NAME
+from peerview.adapters.mcp import TOOL_NAME
 from tests.integration.test_quick_review_web import NEW, mails_to, organizer
 from tests.integration.test_tenancy_web import post
 from tests.integration.web_fakes import Harness, make_harness
@@ -66,7 +66,7 @@ def h() -> Harness:
 # -- the stateless era ---------------------------------------------------------------------------
 
 
-def test_discover_says_what_previewit_is_and_how_to_use_it(h):
+def test_discover_says_what_peerview_is_and_how_to_use_it(h):
     r = rpc(h, "server/discover")
     assert r.status_code == 200 and r.headers["content-type"].startswith("application/json")
     result = r.json()["result"]
@@ -74,7 +74,7 @@ def test_discover_says_what_previewit_is_and_how_to_use_it(h):
     assert "2025-06-18" in result["supportedVersions"]
     assert result["capabilities"] == {"tools": {"listChanged": False}}
     assert "peer review" in result["instructions"] and "never say" in result["instructions"]
-    assert result["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "previewit"
+    assert result["_meta"]["io.modelcontextprotocol/serverInfo"]["name"] == "peerview"
 
 
 def test_the_one_tool_is_described_with_its_inputs(h):
@@ -150,7 +150,7 @@ def test_an_older_client_shakes_hands_and_then_works(h):
     init = rpc(h, "initialize", hello, version=None, modern=False)
     result = init.json()["result"]
     assert result["protocolVersion"] == "2025-06-18"
-    assert result["serverInfo"]["name"] == "previewit" and "tools" in result["capabilities"]
+    assert result["serverInfo"]["name"] == "peerview" and "tools" in result["capabilities"]
     assert "instructions" in result and "mcp-session-id" not in init.headers
     done = rpc(h, "notifications/initialized", id_=None, version="2025-06-18", modern=False)
     assert done.status_code == 202 and done.content == b""
@@ -189,7 +189,7 @@ def test_bad_json_batches_and_strangers_are_turned_away(h):
 def test_a_browser_gets_a_page_and_other_clients_no_stream(h):
     page = h.client.get("/mcp", headers={"Accept": "text/html"})
     assert page.status_code == 200 and "http://testserver/mcp" in page.text
-    assert "claude mcp add --transport http previewit http://testserver/mcp" in page.text
+    assert "claude mcp add --transport http peerview http://testserver/mcp" in page.text
     stream = h.client.get("/mcp", headers={"Accept": "text/event-stream"})
     assert stream.status_code == 405 and stream.headers["allow"] == "POST"
     assert h.client.delete("/mcp").status_code == 405
@@ -227,7 +227,7 @@ def test_the_person_signs_in_checks_the_prepared_request_and_sends_it():
     assert 'value="https://example.org/essay"' in form.text
     assert "rita@x.fi\nbo@x.fi" in form.text and "Please be frank." in form.text
     assert 'value="2026-12-01"' in form.text
-    assert "Previewit can reach this page." in form.text  # checked when the page opened
+    assert "peerview.it can reach this page." in form.text  # checked when the page opened
     token = link.rsplit("/", 1)[1]
     assert f'name="prepared" value="{token}"' in form.text
 

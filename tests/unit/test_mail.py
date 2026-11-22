@@ -4,9 +4,9 @@ from typing import ClassVar
 
 import pytest
 
-from previewit.adapters.mail import LogMailer, SmtpMailer
-from previewit.adapters.settings import Settings
-from previewit.application.ports import MailError
+from peerview.adapters.mail import LogMailer, SmtpMailer
+from peerview.adapters.settings import Settings
+from peerview.application.ports import MailError
 
 
 class FakeSmtp:
@@ -37,14 +37,16 @@ class FakeSmtp:
 def test_smtp_mailer_starttls_login_and_message(monkeypatch: pytest.MonkeyPatch):
     FakeSmtp.instances.clear()
     monkeypatch.setattr(smtplib, "SMTP", FakeSmtp)
-    mailer = SmtpMailer("smtp.example", 587, "user", "pw", "Previewit <no-reply@peereview.example>")
+    mailer = SmtpMailer(
+        "smtp.example", 587, "user", "pw", "peerview.it <no-reply@peereview.example>"
+    )
     mailer.send("ann@x.fi", "Hello", "Body")
     smtp = FakeSmtp.instances[0]
     assert smtp.message is not None
     assert smtp.calls == ["starttls", "login:user"]
     assert smtp.message["To"] == "ann@x.fi"
     assert smtp.message["Subject"] == "Hello"
-    assert smtp.message["From"] == "Previewit <no-reply@peereview.example>"
+    assert smtp.message["From"] == '"peerview.it" <no-reply@peereview.example>'  # a dot is quoted
     assert smtp.message["Auto-Submitted"] == "auto-generated"
     assert smtp.message.get_content().strip() == "Body"
 
@@ -71,10 +73,10 @@ def test_log_mailer_prints_the_mail_for_development(logged):
 def test_settings_read_the_smtp_variables():
     s = Settings.from_env(
         {
-            "PREVIEWIT_SMTP_HOST": "smtp.example",
-            "PREVIEWIT_SMTP_PORT": "465",
-            "PREVIEWIT_SMTP_SECURITY": "ssl",
-            "PREVIEWIT_MAIL_FROM": "a@b.fi",
+            "PEERVIEW_SMTP_HOST": "smtp.example",
+            "PEERVIEW_SMTP_PORT": "465",
+            "PEERVIEW_SMTP_SECURITY": "ssl",
+            "PEERVIEW_MAIL_FROM": "a@b.fi",
         }
     )
     assert (s.smtp_host, s.smtp_port, s.smtp_security, s.mail_from) == (

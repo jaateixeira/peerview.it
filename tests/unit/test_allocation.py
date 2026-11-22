@@ -1,8 +1,8 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from previewit.domain.allocation import Problem, Slot, conflicts, loads
-from previewit.plugins.allocation import ManualStrategy, RandomStrategy, RoundRobinStrategy
+from peerview.domain.allocation import Problem, Slot, conflicts, loads
+from peerview.plugins.allocation import ManualStrategy, RandomStrategy, RoundRobinStrategy
 
 PEOPLE = [f"p{i}" for i in range(12)]
 

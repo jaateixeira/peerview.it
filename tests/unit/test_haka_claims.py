@@ -1,8 +1,8 @@
 import pytest
 
-from previewit.adapters.auth.base import AuthFailed
-from previewit.adapters.auth.haka import PERSISTENT, claims_from_haka
-from previewit.domain.identity import Email, Provider
+from peerview.adapters.auth.base import AuthFailed
+from peerview.adapters.auth.haka import PERSISTENT, claims_from_haka
+from peerview.domain.identity import Email, Provider
 
 IDP = "https://idp.jyu.fi/idp/shibboleth"
 

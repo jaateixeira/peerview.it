@@ -1,7 +1,7 @@
 import pytest
 
-from previewit.domain.identity import Email, User, UserId
-from previewit.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy, parse_actions
+from peerview.domain.identity import Email, User, UserId
+from peerview.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy, parse_actions
 
 
 def _user(*, verified: bool, email: bool = True) -> User:

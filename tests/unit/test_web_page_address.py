@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from previewit.application.web_pages import PageUnreachable, normalise_address
+from peerview.application.web_pages import PageUnreachable, normalise_address
 
 
 @pytest.mark.parametrize(

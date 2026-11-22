@@ -26,8 +26,8 @@ from saml2.metadata import create_metadata_string
 from saml2.response import SignatureError, UnsolicitedResponse
 from saml2.server import Server
 
-from previewit.adapters.auth.haka import HakaConfig, HakaProvider
-from previewit.domain.identity import Email, Provider
+from peerview.adapters.auth.haka import HakaConfig, HakaProvider
+from peerview.domain.identity import Email, Provider
 
 SP_ID = "https://peereview.example/saml/sp"
 ACS = "https://peereview.example/auth/haka/callback"

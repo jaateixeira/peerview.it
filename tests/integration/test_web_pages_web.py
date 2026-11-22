@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import re
 
-from previewit.application.web_pages import PageCheck
+from peerview.application.web_pages import PageCheck
 from tests.integration.test_calls_web import create_call
 from tests.integration.test_quick_review_web import NEW, mails_to, organizer, send
 from tests.integration.test_reviews_web import Setup
@@ -26,7 +26,7 @@ def test_the_form_checks_the_page_while_it_is_typed():
     form = client.get(NEW).text
     assert 'name="web_address"' in form and 'hx-post="/pages/check"' in form
     found = check(client, "example.org/essay")
-    assert found.status_code == 200 and "Previewit can reach this page." in found.text
+    assert found.status_code == 200 and "peerview.it can reach this page." in found.text
     assert "On testing &amp; &#34;trust&#34;" in found.text and "Sam&#39;s notes" in found.text
     h.pages.pages["https://example.org/private"] = "The page asks for a login."
     refused = check(client, "https://example.org/private")
@@ -39,12 +39,12 @@ def test_the_form_checks_the_page_while_it_is_typed():
 def test_a_note_from_the_check_is_shown():
     h, client = organizer()
     shy = PageCheck("https://shy.example/", "https://shy.example/", "", "", "shy.example", "",
-                    note="The site did not let Previewit look at the page.")  # fmt: skip
+                    note="The site did not let peerview.it look at the page.")  # fmt: skip
     h.pages.pages[shy.address] = shy
-    assert "did not let Previewit look" in check(client, "shy.example").text
+    assert "did not let peerview.it look" in check(client, "shy.example").text
 
 
-def test_only_people_signed_in_make_previewit_fetch_pages():
+def test_only_people_signed_in_make_peerview_fetch_pages():
     h = make_harness()
     stranger = h.new_client()
     token = csrf_token(stranger, "/login")

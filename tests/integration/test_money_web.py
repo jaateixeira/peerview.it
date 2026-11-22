@@ -8,8 +8,8 @@ import time
 
 import pytest
 
-from previewit.adapters.payments.paddle import sign
-from previewit.domain.identity import Email
+from peerview.adapters.payments.paddle import sign
+from peerview.domain.identity import Email
 from tests.integration.test_ai_reviews_web import KEY, send, submission_of, words
 from tests.integration.test_quick_review_web import organizer
 from tests.integration.web_fakes import PADDLE_SECRET, Harness, make_harness
@@ -57,7 +57,7 @@ def test_every_page_paddle_reviews_is_public_and_linked_from_every_page(path: st
 
 def test_the_terms_name_the_seller_paddle_and_the_ai_rules() -> None:
     terms = words(make_harness().new_client().get("/terms").text)
-    assert "run by Sam Seller, trading as Previewit" in terms
+    assert "run by Sam Seller, trading as peerview.it" in terms
     assert "Testikatu 1, 40100 Jyväskylä, Finland" in terms and "+358 40 123 4567" in terms
     assert "Our order process is conducted by our online reseller Paddle.com." in terms
     assert MOR in terms and "handles returns" in terms
@@ -93,12 +93,13 @@ def test_pricing_shows_the_packs_and_what_an_ai_review_costs() -> None:
     assert "Prices include VAT where it applies" in pricing
     assert "What one AI review costs" in pricing and "Anthropic/Sonnet" in pricing
     assert MOR in pricing and 'data-token="test_client_token"' in pricing
+    assert "Free models" not in pricing  # this site has no model server of its own: not offered
 
 
 def test_without_seller_details_the_pages_say_so() -> None:
-    from previewit.adapters.web.money_routes import Seller
+    from peerview.adapters.web.money_routes import Seller
 
-    assert not Seller("", "Previewit", "", "", "", "", "", ()).complete
+    assert not Seller("", "peerview.it", "", "", "", "", "", ()).complete
 
 
 # -- credit ----------------------------------------------------------------------------------------

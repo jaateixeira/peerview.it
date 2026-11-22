@@ -7,14 +7,14 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from sqlalchemy import create_engine
 
-from previewit.adapters.persistence.memory import InMemoryUserRepository
-from previewit.adapters.persistence.migrate import upgrade
-from previewit.adapters.persistence.sql import SqlUserRepository
-from previewit.adapters.persistence.tables import metadata
-from previewit.application.ports import DuplicateEmail, DuplicateIdentity, UserRepository
-from previewit.domain.identity import Email, IdentityKey, Provider, User, UserId
+from peerview.adapters.persistence.memory import InMemoryUserRepository
+from peerview.adapters.persistence.migrate import upgrade
+from peerview.adapters.persistence.sql import SqlUserRepository
+from peerview.adapters.persistence.tables import metadata
+from peerview.application.ports import DuplicateEmail, DuplicateIdentity, UserRepository
+from peerview.domain.identity import Email, IdentityKey, Provider, User, UserId
 
-POSTGRES_URL = os.environ.get("PREVIEWIT_TEST_POSTGRES_URL")
+POSTGRES_URL = os.environ.get("PEERVIEW_TEST_POSTGRES_URL")
 
 
 def _clean_postgres(url: str) -> None:
@@ -33,7 +33,7 @@ def repo(request: pytest.FixtureRequest, tmp_path) -> UserRepository:
         url = f"sqlite:///{tmp_path / 'test.db'}"
     else:
         if not POSTGRES_URL:
-            pytest.skip("set PREVIEWIT_TEST_POSTGRES_URL to run against PostgreSQL")
+            pytest.skip("set PEERVIEW_TEST_POSTGRES_URL to run against PostgreSQL")
         _clean_postgres(POSTGRES_URL)
         url = POSTGRES_URL
     upgrade(url)

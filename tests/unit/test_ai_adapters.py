@@ -13,17 +13,17 @@ from pathlib import Path
 import httpx
 import pytest
 
-from previewit.adapters.ai.catalog import (
+from peerview.adapters.ai.catalog import (
     Catalogue,
     CatalogueError,
     LocalModels,
     load_catalogue,
 )
-from previewit.adapters.ai.jobs import ThreadedAiJobs
-from previewit.adapters.ai.writers import HttpAiWriter
-from previewit.application.ai_reviews import DEFAULT_PRICING, AiPrompt, AiServiceError
-from previewit.domain.ai_models import MAX_LISTED, ModelCard, suggest
-from previewit.domain.ai_reviews import AiReviewId
+from peerview.adapters.ai.jobs import ThreadedAiJobs
+from peerview.adapters.ai.writers import HttpAiWriter
+from peerview.application.ai_reviews import DEFAULT_PRICING, AiPrompt, AiServiceError
+from peerview.domain.ai_models import MAX_LISTED, ModelCard, suggest
+from peerview.domain.ai_reviews import AiReviewId
 
 KEY = "sk-secret-0123456789abcdef"
 PROMPT = AiPrompt("Be a reviewer.", "Title: X\n<<<WORK\nHello\nWORK>>>", 2_000)
@@ -77,14 +77,14 @@ def local(transport: httpx.BaseTransport, **kw: object) -> LocalModels:
     return LocalModels("http://bc250.lan:11434/", transport=transport, **options)
 
 
-def test_the_models_on_previewits_server_are_free_and_come_first() -> None:
+def test_the_models_on_peerviews_server_are_free_and_come_first() -> None:
     found = local(ollama(["qwen3:8b", "nomic-embed-text:latest", "gemma3:12b"]))
     _, cards = load_catalogue()
     listed = Catalogue(cards, found).cards()
     assert [c.key for c in listed[:2]] == ["local/gemma3:12b", "local/qwen3:8b"]
     gemma = listed[0]
     assert gemma.free and gemma.maker == "Google" and gemma.flag == "\U0001f1eb\U0001f1ee"
-    assert gemma.hosting == "Previewit's own server, Finland" and gemma.context_tokens == 8192
+    assert gemma.hosting == "peerview.it's own server, Finland" and gemma.context_tokens == 8192
     assert listed[2:] == cards
 
 
@@ -133,7 +133,7 @@ def writer(service: Service) -> HttpAiWriter:
     return HttpAiWriter(
         services,
         ollama_url="http://bc250.lan:11434",
-        user_agent="PreviewitTest/1",
+        user_agent="peerview.it-test/1",
         transport=httpx.MockTransport(service),
     )
 
@@ -175,7 +175,7 @@ def test_openai_style_services_get_a_bearer_key() -> None:
     assert service.sent["model"] == "openai/gpt-oss-120b:cheapest"
 
 
-def test_previewits_own_server_needs_no_key() -> None:
+def test_peerviews_own_server_needs_no_key() -> None:
     service = Service(body={
         "message": {"role": "assistant", "content": "Summary\nNice."},
         "prompt_eval_count": 90, "eval_count": 12,

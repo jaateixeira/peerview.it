@@ -7,9 +7,9 @@ import pytest
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.exc import IntegrityError
 
-from previewit.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
-from previewit.adapters.persistence.sql_calls import SqlCallRepository
-from previewit.adapters.persistence.tables import (
+from peerview.adapters.persistence.sql import SqlTenancyRepository, SqlUserRepository
+from peerview.adapters.persistence.sql_calls import SqlCallRepository
+from peerview.adapters.persistence.tables import (
     calls,
     organizations,
     revisions,
@@ -17,8 +17,8 @@ from previewit.adapters.persistence.tables import (
     share_links,
     submissions,
 )
-from previewit.application.artifacts import Upload
-from previewit.domain.calls import ShareTarget
+from peerview.application.artifacts import Upload
+from peerview.domain.calls import ShareTarget
 from tests.integration.test_tenancy_sql import engine as engine  # fixture
 from tests.unit import test_calls_service as base
 from tests.unit.test_calls_service import SAM, SUE, TINA, ZED, CWorld

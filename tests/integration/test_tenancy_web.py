@@ -3,7 +3,7 @@ from collections.abc import Mapping
 
 from fastapi.testclient import TestClient
 
-from previewit.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
+from peerview.domain.policy import DEFAULT_POLICY, Action, VerificationPolicy
 from tests.integration.web_fakes import Harness, csrf_token, make_harness
 
 PASSWORD = "correct horse battery"

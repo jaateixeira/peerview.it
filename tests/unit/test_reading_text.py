@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from previewit.application.artifacts import ArtifactError, PluginServices, ReadsText, Upload
-from previewit.plugins.pdf import PdfArtifact
-from previewit.plugins.text import TextArtifact
-from previewit.plugins.webpage import WebPageArtifact
+from peerview.application.artifacts import ArtifactError, PluginServices, ReadsText, Upload
+from peerview.plugins.pdf import PdfArtifact
+from peerview.plugins.text import TextArtifact
+from peerview.plugins.webpage import WebPageArtifact
 from tests.unit.test_webpage_plugin import ESSAY, FakePageChecker
 
 

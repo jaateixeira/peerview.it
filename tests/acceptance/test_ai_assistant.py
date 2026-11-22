@@ -80,7 +80,7 @@ def test_an_assistant_prepares_and_the_person_checks_and_sends(page: Page, base_
 def test_a_person_can_read_how_to_connect_an_assistant(page: Page, base_url: str):
     page.goto(base_url)
     page.get_by_role("link", name="For AI assistants").click()
-    expect(page.get_by_role("heading", name="Previewit for AI assistants")).to_be_visible()
+    expect(page.get_by_role("heading", name="peerview.it for AI assistants")).to_be_visible()
     expect(
-        page.get_by_text(f"claude mcp add --transport http previewit {base_url}/mcp")
+        page.get_by_text(f"claude mcp add --transport http peerview {base_url}/mcp")
     ).to_be_visible()

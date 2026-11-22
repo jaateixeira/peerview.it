@@ -1,4 +1,4 @@
-"""ValkeyCache against a real server. Uses PREVIEWIT_TEST_VALKEY_URL, or starts a throwaway
+"""ValkeyCache against a real server. Uses PEERVIEW_TEST_VALKEY_URL, or starts a throwaway
 valkey-server / redis-server if one is installed; otherwise skipped."""
 
 import os
@@ -9,10 +9,10 @@ import time
 
 import pytest
 
-from previewit.adapters.cache import ValkeyCache
-from previewit.adapters.persistence.cached_users import CachedUserRepository
-from previewit.adapters.persistence.memory import InMemoryUserRepository
-from previewit.domain.identity import Email, User, UserId
+from peerview.adapters.cache import ValkeyCache
+from peerview.adapters.persistence.cached_users import CachedUserRepository
+from peerview.adapters.persistence.memory import InMemoryUserRepository
+from peerview.domain.identity import Email, User, UserId
 
 
 def _free_port() -> int:
@@ -23,13 +23,13 @@ def _free_port() -> int:
 
 @pytest.fixture(scope="module")
 def url(tmp_path_factory):
-    configured = os.environ.get("PREVIEWIT_TEST_VALKEY_URL")
+    configured = os.environ.get("PEERVIEW_TEST_VALKEY_URL")
     if configured:
         yield configured
         return
     binary = shutil.which("valkey-server") or shutil.which("redis-server")
     if binary is None:
-        pytest.skip("no Valkey server: set PREVIEWIT_TEST_VALKEY_URL or install valkey-server")
+        pytest.skip("no Valkey server: set PEERVIEW_TEST_VALKEY_URL or install valkey-server")
     port = _free_port()
     proc = subprocess.Popen(
         [binary, "--port", str(port), "--save", "", "--appendonly", "no", "--bind", "127.0.0.1"],
