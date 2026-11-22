@@ -66,6 +66,9 @@ class NumericCriterion:
     def score(self, config: Mapping[str, Any], value: str) -> int | None:
         return int(value)
 
+    def answer_text(self, config: Mapping[str, Any], value: str) -> str:
+        return f"{value} ({config['min']} to {config['max']})"
+
 
 class LevelsCriterion:
     key = "levels"
@@ -127,6 +130,14 @@ class LevelsCriterion:
     def score(self, config: Mapping[str, Any], value: str) -> int | None:
         return int(value)
 
+    def answer_text(self, config: Mapping[str, Any], value: str) -> str:
+        levels = config["levels"]
+        if value.isdigit() and 1 <= int(value) <= len(levels):
+            level = levels[int(value) - 1]
+            label, descriptor = level["label"], level["descriptor"]
+            return f"{label}: {descriptor}" if descriptor else label
+        return value
+
 
 class YesNoCriterion:
     key = "yes_no"
@@ -161,6 +172,9 @@ class YesNoCriterion:
 
     def score(self, config: Mapping[str, Any], value: str) -> int | None:
         return int(value)
+
+    def answer_text(self, config: Mapping[str, Any], value: str) -> str:
+        return {"1": "Yes", "0": "No"}.get(value, value)
 
 
 class TextCriterion:
@@ -201,3 +215,6 @@ class TextCriterion:
 
     def score(self, config: Mapping[str, Any], value: str) -> int | None:
         return None
+
+    def answer_text(self, config: Mapping[str, Any], value: str) -> str:
+        return value

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+{% set sub = view.submission %}
+<section class="stack">
+  <p class="crumb"><a href="/spaces/{{ sub.space_id }}/feedback">Feedback received</a> / <a href="/submissions/{{ sub.id }}">{{ sub.title }}</a></p>
+  <h1>Reviews of {{ sub.title }}</h1>
+  <p><small>{{ view.call.title }}. By {{ view.author_name }}.</small></p>
+  {% if view.organizer %}<p class="notice" role="status">You see every review handed in. Authors see them when the round releases them.</p>{% endif %}
+
+  {% for f in view.rounds %}
+  {% set r = f.round %}
+  <article class="card stack feedback-round" id="round-{{ r.number }}">
+    <h2>Round {{ r.number }}</h2>
+    <p>{{ f.handed_in }} of {{ f.expected }} review{{ '' if f.expected == 1 else 's' }} handed in.
+      {% if f.released %}Authors can read them.{% else %}Authors see them {{ f.rule_label | lower }}{% if r.closes_at %} (due {{ r.closes_at|when }}){% endif %}.{% endif %}</p>
+    {% for rv in f.reviews %}
+    <section class="review-received">
+      <h3>{{ rv.reviewer_label }}</h3>
+      {% if rv.answers %}
+      <dl class="answers">
+        {% for a in rv.answers %}
+        <dt>{{ a.title }}</dt>
+        <dd>{{ a.text }}</dd>
+        {% endfor %}
+      </dl>
+      {% endif %}
+      {% if rv.notes %}
+      <h4>Comments</h4>
+      <ul class="list">
+        {% for n in rv.notes %}
+        <li>{% if n.quote %}<q>{{ n.quote }}</q>: {% else %}<em>On the whole work:</em> {% endif %}{{ n.body }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+    {% else %}
+    {% if f.released %}<p>No reviews handed in yet.</p>{% endif %}
+    {% endfor %}
+  </article>
+  {% else %}
+  <p>Nobody has been asked to review this work yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

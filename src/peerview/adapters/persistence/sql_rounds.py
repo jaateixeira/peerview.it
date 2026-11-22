@@ -9,6 +9,7 @@ from sqlalchemy import Connection, Engine, Row, and_, delete, func, insert, or_,
 from sqlalchemy.exc import IntegrityError
 
 from peerview.adapters.persistence.tables import (
+    feedback_releases,
     invitation_submissions,
     invitations,
     review_rounds,
@@ -19,6 +20,7 @@ from peerview.domain.calls import CallId, SubmissionId
 from peerview.domain.identity import Email, UserId
 from peerview.domain.invitations import Invitation
 from peerview.domain.party import GroupParty, Party, UserParty
+from peerview.domain.release import ReleaseRule
 from peerview.domain.rounds import ReviewRound, ReviewTask, RoundId, TaskId
 from peerview.domain.tenancy import OrgId, SpaceId
 
@@ -26,6 +28,10 @@ from peerview.domain.tenancy import OrgId, SpaceId
 def _utc(value: datetime | None) -> datetime | None:
     if value is None:
         return None
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+def _aware(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
@@ -47,6 +53,8 @@ def _round(row: Row) -> ReviewRound:
         row.anonymity_key,
         _utc(row.opens_at),
         _utc(row.closes_at),
+        row.release_key,
+        _utc(row.released_at),
     )
 
 
@@ -105,6 +113,8 @@ class SqlRoundRepository:
                         anonymity_key=round_.anonymity_key,
                         opens_at=round_.opens_at,
                         closes_at=round_.closes_at,
+                        release_key=round_.release_key,
+                        released_at=round_.released_at,
                     )
                 )
         except IntegrityError:
@@ -126,6 +136,7 @@ class SqlRoundRepository:
                     anonymity_key=round_.anonymity_key,
                     opens_at=round_.opens_at,
                     closes_at=round_.closes_at,
+                    release_key=round_.release_key,
                 )
             )
 
@@ -139,6 +150,7 @@ class SqlRoundRepository:
             )
             conn.execute(delete(invitations).where(invitations.c.round_id == round_id))
             conn.execute(delete(review_tasks).where(review_tasks.c.round_id == round_id))
+            conn.execute(delete(feedback_releases).where(feedback_releases.c.round_id == round_id))
             conn.execute(delete(review_rounds).where(review_rounds.c.id == round_id))
 
     def rounds_of_call(self, call_id: CallId) -> list[ReviewRound]:
@@ -147,6 +159,50 @@ class SqlRoundRepository:
                 select(review_rounds)
                 .where(review_rounds.c.call_id == call_id)
                 .order_by(review_rounds.c.number)
+            ).all()
+        return [_round(r) for r in rows]
+
+    def record_release(
+        self, round_: ReviewRound, submission_id: SubmissionId, at: datetime
+    ) -> bool:
+        try:
+            with self._engine.begin() as conn:
+                conn.execute(
+                    insert(feedback_releases).values(
+                        round_id=round_.id,
+                        submission_id=submission_id,
+                        org_id=round_.org_id,
+                        released_at=at,
+                    )
+                )
+        except IntegrityError:
+            return False
+        return True
+
+    def releases_of_round(self, round_id: RoundId) -> dict[SubmissionId, datetime]:
+        with self._engine.connect() as conn:
+            rows = conn.execute(
+                select(feedback_releases).where(feedback_releases.c.round_id == round_id)
+            ).all()
+        return {SubmissionId(r.submission_id): _aware(r.released_at) for r in rows}
+
+    def mark_released(self, round_id: RoundId, at: datetime) -> None:
+        with self._engine.begin() as conn:
+            conn.execute(
+                update(review_rounds)
+                .where(review_rounds.c.id == round_id, review_rounds.c.released_at.is_(None))
+                .values(released_at=at)
+            )
+
+    def rounds_due_unreleased(self, now: datetime) -> list[ReviewRound]:
+        with self._engine.connect() as conn:
+            rows = conn.execute(
+                select(review_rounds).where(
+                    review_rounds.c.release_key == ReleaseRule.COMPLETE_OR_DUE.value,
+                    review_rounds.c.released_at.is_(None),
+                    review_rounds.c.closes_at.is_not(None),
+                    review_rounds.c.closes_at <= now,
+                )
             ).all()
         return [_round(r) for r in rows]
 

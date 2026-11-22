@@ -12,6 +12,11 @@
     {% for key, label in anonymity_options %}<option value="{{ key }}" {% if (r.anonymity_key if r else default_anonymity) == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
   </select>
 </label>
+<label class="field">Authors see the reviews
+  <select name="release">
+    {% for key, label in release_options %}<option value="{{ key }}" {% if (r.release_key if r else default_release) == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</label>
 <label class="field">Opens <small>(optional)</small> <input type="datetime-local" name="opens_at" value="{{ r.opens_at|local_input if r else '' }}"></label>
 {% set due = r.closes_at if r else None %}
 <div class="field-pair">

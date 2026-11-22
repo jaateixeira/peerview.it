@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="stack">
+  <p class="crumb"><a href="/spaces">Spaces</a> / <a href="/spaces/{{ space_id }}">Back to the space</a></p>
+  <h1>Feedback received</h1>
+  <ul class="list cards">
+    {% for i in items %}
+    <li class="card">
+      <strong><a href="/submissions/{{ i.submission.id }}/feedback">{{ i.submission.title }}</a></strong>
+      <span class="pill">{{ i.shown }} of {{ i.expected }} to read</span>
+      <small>{{ i.call.title }}</small>
+    </li>
+    {% else %}<li>No reviews of your work yet.</li>{% endfor %}
+  </ul>
+</section>
+{% endblock %}

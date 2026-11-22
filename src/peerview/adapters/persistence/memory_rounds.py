@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import replace
+from datetime import datetime
 
 from peerview.application.ports import DuplicateRound, DuplicateTask
-from peerview.domain.calls import CallId
+from peerview.domain.calls import CallId, SubmissionId
 from peerview.domain.identity import UserId
 from peerview.domain.invitations import Invitation
 from peerview.domain.party import Party
+from peerview.domain.release import ReleaseRule
 from peerview.domain.rounds import ReviewRound, ReviewTask, RoundId, TaskId
 from peerview.domain.tenancy import SpaceId
 
@@ -19,6 +21,7 @@ class InMemoryRoundRepository:
         self._rounds: dict[RoundId, ReviewRound] = {}
         self._tasks: dict[TaskId, ReviewTask] = {}
         self._invitations: dict[str, Invitation] = {}
+        self._releases: dict[tuple[RoundId, SubmissionId], datetime] = {}
 
     def add_round(self, round_: ReviewRound) -> None:
         if any(
@@ -31,11 +34,14 @@ class InMemoryRoundRepository:
         return self._rounds.get(round_id)
 
     def update_round(self, round_: ReviewRound) -> None:
-        if round_.id in self._rounds:
-            self._rounds[round_.id] = round_
+        stored = self._rounds.get(round_.id)
+        if stored is not None:
+            self._rounds[round_.id] = replace(round_, released_at=stored.released_at)
 
     def delete_round(self, round_id: RoundId) -> None:
         self._rounds.pop(round_id, None)
+        for key in [k for k in self._releases if k[0] == round_id]:
+            del self._releases[key]
         for iid in [i.id for i in self._invitations.values() if i.round_id == round_id]:
             del self._invitations[iid]
         for tid in [t.id for t in self._tasks.values() if t.round_id == round_id]:
@@ -43,6 +49,33 @@ class InMemoryRoundRepository:
 
     def rounds_of_call(self, call_id: CallId) -> list[ReviewRound]:
         return sorted((r for r in self._rounds.values() if r.call_id == call_id), key=_number)
+
+    def record_release(
+        self, round_: ReviewRound, submission_id: SubmissionId, at: datetime
+    ) -> bool:
+        key = (round_.id, submission_id)
+        if key in self._releases or round_.id not in self._rounds:
+            return False
+        self._releases[key] = at
+        return True
+
+    def releases_of_round(self, round_id: RoundId) -> dict[SubmissionId, datetime]:
+        return {sid: at for (rid, sid), at in self._releases.items() if rid == round_id}
+
+    def mark_released(self, round_id: RoundId, at: datetime) -> None:
+        found = self._rounds.get(round_id)
+        if found is not None and found.released_at is None:
+            self._rounds[round_id] = replace(found, released_at=at)
+
+    def rounds_due_unreleased(self, now: datetime) -> list[ReviewRound]:
+        return [
+            r
+            for r in self._rounds.values()
+            if r.release_key == ReleaseRule.COMPLETE_OR_DUE.value
+            and r.released_at is None
+            and r.closes_at is not None
+            and r.closes_at <= now
+        ]
 
     def add_tasks(self, tasks: Sequence[ReviewTask]) -> None:
         for task in tasks:

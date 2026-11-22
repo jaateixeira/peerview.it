@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 
 from peerview.application.artifacts import ArtifactRegistry, ArtifactType, Upload
+from peerview.application.identity_mask import IdentityMask
 from peerview.application.ports import (
     CallRepository,
     DuplicateSubmission,
@@ -107,6 +108,7 @@ class SubmissionView:
     can_share: bool
     guest: bool
     sees_ai_reviews: bool = False  # the author and the organizers; never reviewers (ADR 0025)
+    sees_feedback: bool = False  # the reviews from people, once released (ADR 0028)
 
 
 @dataclass(frozen=True)
@@ -162,6 +164,7 @@ class CallsService:
         self._tenancy = tenancy
         self._tenancy_repo = tenancy_repo
         self._users = users
+        self._mask = IdentityMask(users, tenancy_repo)
         self._artifacts = artifacts
         self._entitlements = entitlements
         self._new_id = new_id
@@ -327,6 +330,8 @@ class CallsService:
             guest=access.guest,
             sees_ai_reviews=not access.guest
             and (is_author or Permission.CALLS_MANAGE in access.perms),
+            sees_feedback=not access.guest
+            and (is_author or Permission.ROUNDS_MANAGE in access.perms),
         )  # fmt: skip
 
     def revision(self, actor: UserId, submission_id: SubmissionId, number: int) -> Revision:
@@ -505,11 +510,8 @@ class CallsService:
         return GroupParty(group_id)
 
     def _party_label(self, party: Party) -> str:
-        if isinstance(party, UserParty):
-            user = self._users.get(UserId(party.user_id))
-            return user.display_name if user else "Unknown"
-        group = self._tenancy_repo.get_group(GroupId(party.group_id))
-        return group.name if group else "Unknown group"
+        """Authors and organizers see the author's name; reviewers never come here."""
+        return self._mask.name(party)
 
     def _summaries(self, submissions: list[Submission]) -> list[SubmissionSummary]:
         return [

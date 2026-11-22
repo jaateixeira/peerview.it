@@ -62,6 +62,22 @@ class CriterionType(Protocol):
         ...
 
 
+@runtime_checkable
+class ShowsAnswers(Protocol):
+    """A criterion type that can put a saved answer into words for the people who read the
+    review (ADR 0028). Without it, the page shows the answer as it was stored."""
+
+    def answer_text(self, config: Mapping[str, Any], value: str) -> str:
+        """Plain text (the page escapes it), for example `4 (1 to 5)` or `Good`."""
+        ...
+
+
+def answer_text(kind: CriterionType, config: Mapping[str, Any], value: str) -> str:
+    if isinstance(kind, ShowsAnswers):
+        return kind.answer_text(config, value)
+    return value
+
+
 class UnknownCriterionType(KeyError):
     pass
 

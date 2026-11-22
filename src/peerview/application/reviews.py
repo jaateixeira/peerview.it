@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime
 
-from peerview.application.artifacts import ArtifactError, ArtifactRegistry, ArtifactType
+from peerview.application.artifacts import (
+    ArtifactError,
+    ArtifactRegistry,
+    ArtifactType,
+    anonymous_copy,
+)
 from peerview.application.criteria import CriterionError, CriterionRegistry
+from peerview.application.identity_mask import IdentityMask
 from peerview.application.ports import (
     CallRepository,
     DuplicateReview,
@@ -18,6 +25,7 @@ from peerview.application.ports import (
     UserRepository,
 )
 from peerview.application.tenancy import Forbidden, NotFound, TenancyService
+from peerview.domain.anonymity import Viewer
 from peerview.domain.calls import Call, Revision, Submission
 from peerview.domain.identity import UserId
 from peerview.domain.party import GroupParty, Party, UserParty
@@ -36,6 +44,8 @@ from peerview.domain.reviews import (
 from peerview.domain.rounds import ReviewRound, ReviewTask, RoundStatus, TaskId
 from peerview.domain.rubrics import Criterion
 from peerview.domain.tenancy import GroupId, Permission
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -81,6 +91,7 @@ class Workspace:
     annotations: list[AnnotationView]
     trail: list[EditView]
     annotatable: bool
+    author_label: str  # the author's name, or "Anonymous author" (ADR 0028)
 
 
 @dataclass(frozen=True)
@@ -90,6 +101,7 @@ class Access:
     call: Call
     is_reviewer: bool  # you, or your group, were given the task
     can_edit: bool
+    manager: bool = False  # organizers see everyone (ADR 0028)
 
 
 class ReviewsService:
@@ -114,10 +126,17 @@ class ReviewsService:
         self._tenancy = tenancy
         self._tenancy_repo = tenancy_repo
         self._users = users
+        self._mask = IdentityMask(users, tenancy_repo)
         self._criteria = criteria
         self._artifacts = artifacts
         self._new_id = new_id
         self._now = clock
+        self._hand_in_listeners: list[Callable[[ReviewTask], None]] = []
+
+    def when_handed_in(self, listener: Callable[[ReviewTask], None]) -> None:
+        """Call `listener` with the task each time a review is handed in for the first time
+        (the feedback service releases it to authors and notifies them, ADR 0028)."""
+        self._hand_in_listeners.append(listener)
 
     # -- reading ----------------------------------------------------------
 
@@ -172,6 +191,7 @@ class ReviewsService:
             self._annotation_views(actor, review, access) if review else [],
             self._trail(review) if review else [],
             annotatable,
+            self._author_label(access, submission),
         )
 
     def raw(self, actor: UserId, task_id: TaskId) -> Revision:
@@ -180,7 +200,14 @@ class ReviewsService:
         revision = self._calls.get_revision(access.task.submission_id, access.task.revision_number)
         if revision is None:
             raise NotFound
-        return revision
+        if access.manager or access.round.anonymity.may_see_author(Viewer.REVIEWER):
+            return revision
+        artifact_type = self._artifacts.get(access.call.artifact_type)
+        try:
+            return replace(revision, artifact=anonymous_copy(artifact_type, revision.artifact))
+        except ArtifactError:
+            logger.warning("Could not make an anonymous copy of a revision for its reviewer")
+            raise NotFound from None
 
     # -- the review form --------------------------------------------------
 
@@ -205,7 +232,11 @@ class ReviewsService:
             missing = self._missing_required(access.call, clean)
             if missing:
                 raise InvalidReview("Answer the required questions: " + ", ".join(missing) + ".")
-        return self._store(actor, access, existing, clean, expected_version, final)
+        review = self._store(actor, access, existing, clean, expected_version, final)
+        if final and not (existing and existing.submitted):
+            for listener in self._hand_in_listeners:
+                listener(access.task)
+        return review
 
     # -- annotations ------------------------------------------------------
 
@@ -280,7 +311,7 @@ class ReviewsService:
                 raise Forbidden  # staff can read a review, only the reviewer writes it
             if status is RoundStatus.CLOSED:
                 raise ReviewClosed
-        return Access(task, round_, call, mine, can_edit)
+        return Access(task, round_, call, mine, can_edit, manager)
 
     def _is_reviewer(self, actor: UserId, party: Party) -> bool:
         if isinstance(party, UserParty):
@@ -356,15 +387,16 @@ class ReviewsService:
             raise EditConflict
         return review
 
+    def _author_label(self, access: Access, submission: Submission) -> str:
+        viewer = Viewer.ORGANIZER if access.manager else Viewer.REVIEWER
+        return self._mask.author(submission.author, access.round.anonymity, viewer)
+
     def _party_label(self, party: Party) -> str:
-        if isinstance(party, UserParty):
-            user = self._users.get(UserId(party.user_id))
-            return user.display_name if user else "Unknown"
-        group = self._tenancy_repo.get_group(GroupId(party.group_id))
-        return group.name if group else "Unknown group"
+        """The reviewer's own name, or their group's: shown to them and to organizers."""
+        return self._mask.name(party)
 
     def _names(self, ids: list[UserId]) -> dict[UserId, str]:
-        return {uid: u.display_name for uid, u in self._users.get_many(list(set(ids))).items()}
+        return self._mask.people(ids)
 
     def _annotation_views(
         self, actor: UserId, review: Review, access: Access

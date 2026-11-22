@@ -20,12 +20,12 @@ flowchart TB
     end
 
     subgraph application ["application: use cases and ports (planned)"]
-        UCS["Use cases: commands and queries"]
+        UCS["Use cases: commands and queries; IdentityMask (ADR 0028)"]
         PORTS["Ports: repositories, FileStorage, AuthProvider, Notifier, Entitlements"]
     end
 
     subgraph domain ["domain: pure Python"]
-        DOM["Party and AnonymityPolicy (built); entities, allocation, IdentityMask (planned)"]
+        DOM["Party, AnonymityPolicy, release rules, entities, allocation (built)"]
     end
 
     subgraph plugins ["plugins: pluggy registry (M2)"]

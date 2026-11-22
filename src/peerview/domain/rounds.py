@@ -16,6 +16,7 @@ from typing import NewType
 from peerview.domain.anonymity import AnonymityPolicy
 from peerview.domain.calls import CallId, SubmissionId
 from peerview.domain.party import Party
+from peerview.domain.release import DEFAULT_RELEASE, ReleaseRule, feedback_released
 from peerview.domain.tenancy import OrgId, SpaceId
 
 RoundId = NewType("RoundId", str)
@@ -57,6 +58,14 @@ def anonymity_policy(key: str) -> AnonymityPolicy:
         raise InvalidRound("Choose one of the anonymity options.") from None
 
 
+def release_rule(key: str) -> ReleaseRule:
+    """When authors see the reviews (ADR 0028), by its key."""
+    try:
+        return ReleaseRule(key)
+    except ValueError:
+        raise InvalidRound("Choose when authors see the reviews.") from None
+
+
 class RoundStatus(StrEnum):
     SCHEDULED = "scheduled"  # not open yet
     OPEN = "open"
@@ -75,6 +84,8 @@ class ReviewRound:
     anonymity_key: str
     opens_at: datetime | None
     closes_at: datetime | None
+    release_key: str = DEFAULT_RELEASE.value  # when authors see the reviews (ADR 0028)
+    released_at: datetime | None = None  # an organizer released them early
 
     def status(self, now: datetime) -> RoundStatus:
         if self.opens_at is not None and now < self.opens_at:
@@ -86,6 +97,21 @@ class ReviewRound:
     @property
     def anonymity(self) -> AnonymityPolicy:
         return anonymity_policy(self.anonymity_key)
+
+    @property
+    def release(self) -> ReleaseRule:
+        return release_rule(self.release_key)
+
+    def feedback_released(self, now: datetime, *, handed_in: int, expected: int) -> bool:
+        """Whether the authors of one Submission may read its handed-in reviews."""
+        return feedback_released(
+            self.release,
+            now=now,
+            closes_at=self.closes_at,
+            released_at=self.released_at,
+            handed_in=handed_in,
+            expected=expected,
+        )
 
 
 def validate_window(opens_at: datetime | None, closes_at: datetime | None) -> None:

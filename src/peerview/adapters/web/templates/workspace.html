@@ -3,6 +3,7 @@
 <section class="stack">
   <p class="crumb"><a href="/spaces">Spaces</a> / <a href="/spaces/{{ ws.task.space_id }}/reviews">My reviews</a></p>
   <h1>{{ ws.submission.title }}</h1>
+  <p><small>By {{ ws.author_label }}.</small></p>
   <p><small>{{ ws.call.title }}, round {{ ws.round.number }}, revision {{ ws.revision.number }}.
     {% if ws.shared %}Group review by {{ ws.reviewer_label }}: every member can edit it.{% endif %}
     {% if ws.closed %}This round has closed; the review can no longer change.{% elif not ws.can_edit %}You are reading this review; only the reviewer can edit it.{% endif %}</small></p>

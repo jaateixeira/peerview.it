@@ -53,6 +53,7 @@ from peerview.application.auth import AuthService
 from peerview.application.calls import CallsService
 from peerview.application.credits import CreditsService
 from peerview.application.criteria import CriterionRegistry
+from peerview.application.feedback import FeedbackService
 from peerview.application.invitations import InvitationsService
 from peerview.application.ports import Mailer
 from peerview.application.prepared_requests import PreparedRequestsService
@@ -178,6 +179,20 @@ def create_app() -> FastAPI:
         lambda: uuid.uuid4().hex,
         lambda: datetime.now(UTC),
     )
+    feedback = FeedbackService(  # ADR 0028: authors read their reviews when released
+        round_repo,
+        review_repo,
+        call_repo,
+        rubric_repo,
+        tenancy,
+        tenancy_repo,
+        users,
+        criterion_types,
+        mailer,
+        settings.base_url,
+        lambda: datetime.now(UTC),
+    )
+    reviews.when_handed_in(feedback.handed_in)
     ai = None
     credits = CreditsService(  # ADR 0026: bought through Paddle, spent on AI reviews
         SqlCreditRepository(engine),
@@ -258,6 +273,7 @@ def create_app() -> FastAPI:
         version=_version(),
         ai=ai,
         credits=credits,
+        feedback=feedback,
     )
 
 

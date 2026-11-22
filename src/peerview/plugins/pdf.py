@@ -9,8 +9,9 @@ from collections.abc import Mapping
 from html import escape
 from typing import Literal
 
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PyPdfError
+from pypdf.generic import DictionaryObject, NameObject
 
 from peerview.application.artifacts import ArtifactError, Upload
 from peerview.domain.calls import Artifact
@@ -51,6 +52,27 @@ class PdfArtifact:
                 "(or run text recognition on it) and try again."
             )
         return text
+
+    def without_names(self, artifact: Artifact) -> Artifact:
+        """Drop the document properties, the XMP metadata and the names on comments, which
+        word processors fill with the author's name (ADR 0028)."""
+        logging.getLogger("pypdf").setLevel(logging.ERROR)
+        try:
+            writer = PdfWriter(clone_from=PdfReader(io.BytesIO(artifact.content)))
+            writer.metadata = None
+            writer.root_object.pop(NameObject("/Metadata"), None)
+            for page in writer.pages:
+                page.pop(NameObject("/Metadata"), None)
+                for ref in page.get("/Annots") or []:
+                    note = ref.get_object()
+                    if isinstance(note, DictionaryObject):
+                        for key in ("/T", "/Popup", "/RC"):
+                            note.pop(NameObject(key), None)
+            out = io.BytesIO()
+            writer.write(out)
+        except (PyPdfError, ValueError, KeyError, TypeError, OSError, AttributeError):
+            raise ArtifactError("peerview.it could not remove the names from this PDF.") from None
+        return Artifact(self.key, artifact.media_type, out.getvalue(), None)
 
     def render_html(self, artifact: Artifact, raw_url: str) -> str:
         url = escape(raw_url, quote=True)

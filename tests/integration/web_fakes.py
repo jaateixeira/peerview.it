@@ -38,6 +38,7 @@ from peerview.application.auth import AuthService
 from peerview.application.calls import CallsService
 from peerview.application.credits import CreditsService
 from peerview.application.criteria import CriterionRegistry
+from peerview.application.feedback import FeedbackService
 from peerview.application.invitations import InvitationsService
 from peerview.application.ports import MailError
 from peerview.application.prepared_requests import PreparedRequestsService
@@ -139,6 +140,7 @@ class Harness:
     ai_jobs: Jobs
     ai_repo: InMemoryAiReviewRepository
     credits: CreditsService
+    feedback: FeedbackService
 
     def new_client(self) -> TestClient:
         """Another browser: same app, its own cookies."""
@@ -232,6 +234,11 @@ def make_harness(
         lambda: f"v{next(ids)}",
         clock,
     )
+    feedback = FeedbackService(
+        round_repo, review_repo, call_repo, rubric_repo, tenancy, tenancy_repo, users, criteria,
+        outbox, base_url, clock,
+    )  # fmt: skip
+    reviews.when_handed_in(feedback.handed_in)
     quick = QuickReviewService(tenancy, calls, rounds, invitations, artifacts, users, clock)
     ai_repo, ai_writer, ai_jobs = InMemoryAiReviewRepository(), FakeWriter(), Jobs()
     credits = CreditsService(
@@ -257,11 +264,12 @@ def make_harness(
         ),
         ai=ai if with_ai else None,
         credits=credits,
+        feedback=feedback,
     )  # fmt: skip
     client = TestClient(app, base_url=base_url, follow_redirects=False)
     return Harness(
         client, auth, outbox, clock, app, base_url, pages, prepared_repo, ai_writer, ai_jobs,
-        ai_repo, credits,
+        ai_repo, credits, feedback,
     )  # fmt: skip
 
 

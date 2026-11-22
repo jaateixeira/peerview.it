@@ -12,6 +12,14 @@
     <h2>Round {{ r.number }} <span class="pill">{{ v.status.value }}</span></h2>
     <p>{{ v.strategy_label }} allocation, {{ r.per_submission }} review{{ '' if r.per_submission == 1 else 's' }} per submission. {{ v.anonymity_label }}.
       {% if r.opens_at %}Opens {{ r.opens_at|when }}. {% endif %}{% if r.closes_at %}Reviews due {{ r.closes_at|when }}.{% endif %}</p>
+    <p>Authors see the reviews: {{ v.release_label | lower }}.{% if r.released_at %} <strong>Released {{ r.released_at|when }}.</strong>{% endif %}</p>
+    {% if can_release and v.tasks and not r.released_at %}
+    <form method="post" action="/rounds/{{ r.id }}/release" hx-boost="false" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf_token }}">
+      <button class="btn btn-secondary" type="submit">Show authors the reviews now (round {{ r.number }})</button>
+      <small>Authors see the reviews handed in so far, and any that come later.</small>
+    </form>
+    {% endif %}
 
     {% if v.automatic %}
     <form method="post" action="/rounds/{{ r.id }}/allocate" hx-boost="false" class="inline">
